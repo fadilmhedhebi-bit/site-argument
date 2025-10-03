@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ListChecks, Shield, Store, ArrowRight, User, Clock, Upload, FileText, Sparkles } from "lucide-react";
+import { CheckCircle2, ListChecks, Shield, Store, ArrowRight, User, Clock, FileText, Sparkles } from "lucide-react";
 
 const logoSrc = "/timeback-logo.png";
 
@@ -33,15 +33,25 @@ const PricingCard = ({ name, price, perks, featured }) => (
   <div className={`rounded-2xl p-5 border ${featured ? "border-blue-600 shadow-md" : "border-gray-200"}`}>
     <div className="flex items-baseline justify-between mb-2">
       <h3 className="text-base font-semibold">{name}</h3>
-      {featured && <span className="text-[11px] px-2 py-1 rounded-full bg-blue-600 text-white flex items-center gap-1"><Sparkles size={12}/> Recommandé</span>}
+      {featured && (
+        <span className="text-[11px] px-2 py-1 rounded-full bg-blue-600 text-white flex items-center gap-1">
+          <Sparkles size={12}/> Recommandé
+        </span>
+      )}
     </div>
-    <p className="text-3xl font-bold mb-4">{price}<span className="text-sm font-medium text-gray-500">/mois</span></p>
+    <p className="text-3xl font-bold mb-4">
+      {price}<span className="text-sm font-medium text-gray-500">/mois</span>
+    </p>
     <ul className="space-y-2 mb-4">
       {perks.map((p, i) => (
-        <li key={i} className="flex items-center gap-2 text-sm"><CheckCircle2 size={16} className="text-blue-600"/> {p}</li>
+        <li key={i} className="flex items-center gap-2 text-sm">
+          <CheckCircle2 size={16} className="text-blue-600"/> {p}
+        </li>
       ))}
     </ul>
-    <button className={`${featured ? "bg-blue-600 text-white" : "border border-gray-300"} w-full py-2.5 rounded-xl text-sm font-semibold`}>{featured ? "Passer en Premium" : "Commencer"}</button>
+    <button className={`${featured ? "bg-blue-600 text-white" : "border border-gray-300"} w-full py-2.5 rounded-xl text-sm font-semibold`}>
+      {featured ? "Passer en Premium" : "Commencer"}
+    </button>
   </div>
 );
 
@@ -69,7 +79,7 @@ export default function TimeBackInterface() {
 
   const submitDemande = (e) => {
     e.preventDefault();
-    if (!cat || !email || !file) { setFlash("Catégorie, e‑mail et fichier requis."); return; }
+    if (!cat || !email || !file) { setFlash("Catégorie, e-mail et fichier requis."); return; }
     const id = "D" + Math.random().toString(36).slice(2, 8).toUpperCase();
     const reader = new FileReader();
     reader.onload = () => {
@@ -86,7 +96,7 @@ export default function TimeBackInterface() {
         fileDataURL: reader.result,
       };
       setDossiers([dossier, ...dossiers]);
-      setFlash("Demande envoyée. Un e‑mail de confirmation est simulé.");
+      setFlash("Demande envoyée. Un e-mail de confirmation est simulé.");
       setCat(""); setType(""); setDesc(""); setEmail(""); setFile(null);
       setTab("suivi");
     };
@@ -95,17 +105,19 @@ export default function TimeBackInterface() {
 
   const setStatus = (id, status) => {
     setDossiers(ds => ds.map(d => d.id === id ? { ...d, status, updatedAt: Date.now() } : d));
-    setFlash("Statut mis à jour. E‑mail simulé envoyé.");
+    setFlash("Statut mis à jour. E-mail simulé envoyé.");
   };
 
   return (
-    <div className="min-h-dvh bg-white text-gray-900">
+    <div className="min-h-screen bg-white text-gray-900">
       <div className="sticky top-0 z-10 border-b border-gray-100 bg-white/70 backdrop-blur">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
           <img src={logoSrc} alt="TimeBack" className="h-7 w-auto" onError={(e)=>{e.currentTarget.style.display='none';}} />
           <div className="h-7 w-7 rounded-xl bg-blue-600 text-white grid place-items-center"><Clock size={16} /></div>
           <span className="text-lg font-semibold tracking-tight">TimeBack</span>
-          <span className="ml-auto text-[11px] text-blue-700"><Badge>{plan === 'free' ? 'Gratuit' : 'Premium'}</Badge></span>
+          <div className="ml-auto">
+            <Badge>{plan === 'free' ? 'Gratuit' : 'Premium'}</Badge>
+          </div>
         </div>
       </div>
 
@@ -123,8 +135,12 @@ export default function TimeBackInterface() {
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <button onClick={()=>setTab('demande')} className="w-full py-3 rounded-xl bg-white text-blue-700 text-sm font-semibold flex items-center justify-center gap-2">Nouvelle demande <ArrowRight size={16} /></button>
-                <button onClick={()=>setTab('suivi')} className="w-full py-3 rounded-xl border border-white/40 text-white text-sm font-semibold">Voir le suivi</button>
+                <button onClick={()=>setTab('demande')} className="w-full py-3 rounded-xl bg-white text-blue-700 text-sm font-semibold flex items-center justify-center gap-2">
+                  Nouvelle demande <ArrowRight size={16} />
+                </button>
+                <button onClick={()=>setTab('suivi')} className="w-full py-3 rounded-xl border border-white/40 text-white text-sm font-semibold">
+                  Voir le suivi
+                </button>
               </div>
             </div>
 
@@ -147,10 +163,20 @@ export default function TimeBackInterface() {
 
         {tab === "demande" && (
           <AnimatePresence mode="wait">
-            <motion.form initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} onSubmit={submitDemande} className="space-y-4">
+            <motion.form
+              initial={{opacity:0,y:8}}
+              animate={{opacity:1,y:0}}
+              exit={{opacity:0,y:-8}}
+              onSubmit={submitDemande}
+              className="space-y-4"
+            >
               <Card className="p-4">
                 <label className="text-sm text-gray-600">Catégorie</label>
-                <select value={cat} onChange={e=>{setCat(e.target.value); setType("");}} className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+                <select
+                  value={cat}
+                  onChange={e=>{setCat(e.target.value); setType("");}}
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                >
                   <option value="">Choisir…</option>
                   {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -158,7 +184,12 @@ export default function TimeBackInterface() {
 
               <Card className="p-4">
                 <label className="text-sm text-gray-600">Type de démarche</label>
-                <select value={type} onChange={e=>setType(e.target.value)} disabled={!cat} className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50">
+                <select
+                  value={type}
+                  onChange={e=>setType(e.target.value)}
+                  disabled={!cat}
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50"
+                >
                   <option value="">Choisir…</option>
                   {allowedTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -166,21 +197,48 @@ export default function TimeBackInterface() {
 
               <Card className="p-4">
                 <label className="text-sm text-gray-600">Description (optionnel)</label>
-                <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3} placeholder="Explique ta demande" className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"/>
+                <textarea
+                  value={desc}
+                  onChange={e=>setDesc(e.target.value)}
+                  rows={3}
+                  placeholder="Explique ta demande"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                />
               </Card>
 
               <Card className="p-4">
-                <label className="text-sm text-gray-600">Adresse e‑mail</label>
-                <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="ton@email.com" className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"/>
+                <label className="text-sm text-gray-600">Adresse e-mail</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e=>setEmail(e.target.value)}
+                  placeholder="ton@email.com"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                />
               </Card>
 
               <Card className="p-4">
                 <label className="text-sm text-gray-600">Fichier (PDF ou image)</label>
-                <input type="file" accept=".pdf,image/*" onChange={e=>setFile(e.target.files?.[0] || null)} className="mt-2 w-full text-sm"/>
-                {file && <div className="mt-3 text-sm">Fichier sélectionné : <span className="font-medium">{file.name}</span></div>}
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={e=>setFile(e.target.files?.[0] || null)}
+                  className="mt-2 w-full text-sm"
+                />
+                {file && (
+                  <div className="mt-3 text-sm">
+                    Fichier sélectionné : <span className="font-medium">{file.name}</span>
+                  </div>
+                )}
               </Card>
 
-              <button type="submit" disabled={!cat || !email || !file} className={`w-full py-3 rounded-xl text-white font-semibold ${(!cat || !email || !file) ? 'bg-gray-300' : 'bg-blue-600'}`}>Envoyer la demande</button>
+              <button
+                type="submit"
+                disabled={!cat || !email || !file}
+                className={`w-full py-3 rounded-xl text-white font-semibold ${(!cat || !email || !file) ? 'bg-gray-300' : 'bg-blue-600'}`}
+              >
+                Envoyer la demande
+              </button>
             </motion.form>
           </AnimatePresence>
         )}
@@ -190,13 +248,17 @@ export default function TimeBackInterface() {
             {dossiers.length === 0 && (
               <Card className="p-5 text-center">
                 <div className="font-semibold mb-1">Aucune démarche pour le moment</div>
-                <button onClick={()=>setTab('demande')} className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm">Créer une demande</button>
+                <button onClick={()=>setTab('demande')} className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm">
+                  Créer une demande
+                </button>
               </Card>
             )}
             {dossiers.map(d => (
               <Card key={d.id} className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-600 text-white grid place-items-center"><FileText size={18}/></div>
+                  <div className="h-10 w-10 rounded-xl bg-blue-600 text-white grid place-items-center">
+                    <FileText size={18}/>
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <div className="font-semibold">{CATEGORIES.find(c=>c.id===d.category)?.name || 'Démarche'}</div>
@@ -208,7 +270,7 @@ export default function TimeBackInterface() {
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <button onClick={()=>setStatus(d.id,'En cours')} className="rounded-xl border border-gray-300 py-2 text-sm">Mettre en cours</button>
-                  <button onClick={()=>setStatus(d.id,'En attente de pièce')} className="rounded-xl border border-gray-300 py-2 text-sm">Demander pièce</button>
+                  <button onClick={()=>setStatus(d.id,'En attente de pièce')} className="rounded-xl border border-gray-300 py-2 text-sm">Demander une pièce</button>
                   <button onClick={()=>setStatus(d.id,'Terminée')} className="rounded-xl bg-blue-600 text-white py-2 text-sm">Terminer</button>
                 </div>
                 <div className="mt-3 text-[12px] text-gray-500">ID dossier : {d.id}</div>
@@ -233,7 +295,12 @@ export default function TimeBackInterface() {
                   <div className="font-semibold">Premium — 4,99€/mois</div>
                   <div className="text-[12px] text-gray-500">Traitement express, accompagnement humain, support prioritaire</div>
                 </div>
-                <button onClick={()=>setPlan(plan==='free'?'premium':'free')} className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm">{plan==='free' ? 'Activer' : 'Revenir Gratuit'}</button>
+                <button
+                  onClick={()=>setPlan(plan==='free'?'premium':'free')}
+                  className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm"
+                >
+                  {plan==='free' ? 'Activer' : 'Revenir Gratuit'}
+                </button>
               </div>
             </Card>
           </div>
