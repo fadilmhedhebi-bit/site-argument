@@ -1,37 +1,33 @@
 import { create } from 'zustand';
-import { api } from '../utils/api';
+import { api, setApiToken } from '../utils/api';
 
 export const useAuthStore = create((set) => ({
   user: null,
-  token: localStorage.getItem('token'),
-  loading: true,
-
-  init: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) { set({ loading: false }); return; }
-    try {
-      const user = await api.get('/auth/me');
-      set({ user, token, loading: false });
-    } catch {
-      localStorage.removeItem('token');
-      set({ user: null, token: null, loading: false });
-    }
-  },
+  token: null,
 
   login: async (username, password) => {
     const data = await api.post('/auth/login', { username, password });
-    localStorage.setItem('token', data.token);
+    setApiToken(data.token);
     set({ user: data.user, token: data.token });
+    return data;
   },
 
-  register: async (formData) => {
-    const data = await api.post('/auth/register', formData);
-    localStorage.setItem('token', data.token);
+  register: async (payload) => {
+    const data = await api.post('/auth/register', payload);
+    setApiToken(data.token);
     set({ user: data.user, token: data.token });
+    return data;
   },
 
   logout: () => {
-    localStorage.removeItem('token');
+    setApiToken(null);
     set({ user: null, token: null });
   },
+
+  setToken: (token) => {
+    setApiToken(token);
+    set({ token });
+  },
+
+  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
 }));
