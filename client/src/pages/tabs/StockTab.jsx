@@ -10,7 +10,7 @@ export default function StockTab() {
   const [filterCat, setFilterCat] = useState('');
   const [showProduct, setShowProduct] = useState(null);
   const [showPromo, setShowPromo] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', lowStockThreshold: '5' });
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', stockAlertThreshold: '5' });
   const [promoForm, setPromoForm] = useState({ code: '', type: 'percentage', value: '', minOrder: '', maxUses: '', expiresAt: '' });
 
   const load = () => {
@@ -37,7 +37,7 @@ export default function StockTab() {
         price: parseFloat(productForm.price),
         categoryId: productForm.categoryId || undefined,
         stockQuantity: parseInt(productForm.stockQuantity) || 0,
-        lowStockThreshold: parseInt(productForm.lowStockThreshold) || 5,
+        stockAlertThreshold: parseInt(productForm.stockAlertThreshold) || 5,
       };
       if (showProduct !== 'new') await api.put(`/products/${showProduct.id}`, body);
       else await api.post('/products', body);
@@ -71,16 +71,19 @@ export default function StockTab() {
     } catch (err) { alert(err.message); }
   };
 
-  const togglePromo = async (id) => { try { await api.patch(`/promos/${id}`); load(); } catch (err) { alert(err.message); } };
+  const togglePromo = async (id) => {
+    const p = promos.find(pr => pr.id === id);
+    try { await api.patch(`/promos/${id}`, { isActive: !p?.is_active }); load(); } catch (err) { alert(err.message); }
+  };
   const deletePromo = async (id) => { if (!confirm('Supprimer ?')) return; try { await api.delete(`/promos/${id}`); load(); } catch (err) { alert(err.message); } };
 
   const openEditProduct = (p) => {
-    setProductForm({ name: p.name, description: p.description || '', price: p.price, categoryId: p.category_id || '', stockQuantity: p.stock_quantity, lowStockThreshold: p.low_stock_threshold || 5 });
+    setProductForm({ name: p.name, description: p.description || '', price: p.price, categoryId: p.category_id || '', stockQuantity: p.stock_quantity, stockAlertThreshold: p.stock_alert_threshold || 5 });
     setShowProduct(p);
   };
 
   const openNewProduct = () => {
-    setProductForm({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', lowStockThreshold: '5' });
+    setProductForm({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', stockAlertThreshold: '5' });
     setShowProduct('new');
   };
 
@@ -136,7 +139,7 @@ export default function StockTab() {
             </thead>
             <tbody className="divide-y divide-kraft/30">
               {filtered.map(p => (
-                <tr key={p.id} className={p.stock_quantity <= (p.low_stock_threshold || 5) ? 'bg-stop/5' : ''}>
+                <tr key={p.id} className={p.stock_quantity <= (p.stock_alert_threshold || 5) ? 'bg-stop/5' : ''}>
                   <td className="px-4 py-3">
                     <p className="font-semibold text-ink">{p.name}</p>
                     {p.category_name && <p className="text-xs text-ink/40">{p.category_name}</p>}
@@ -145,7 +148,7 @@ export default function StockTab() {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => adjustStock(p.id, -1)} className="w-7 h-7 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">−</button>
-                      <span className={`font-mono w-8 text-center ${p.stock_quantity <= (p.low_stock_threshold || 5) ? 'text-stop font-bold' : 'text-ink'}`}>
+                      <span className={`font-mono w-8 text-center ${p.stock_quantity <= (p.stock_alert_threshold || 5) ? 'text-stop font-bold' : 'text-ink'}`}>
                         {p.stock_quantity}
                       </span>
                       <button onClick={() => adjustStock(p.id, 1)} className="w-7 h-7 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">+</button>
@@ -214,7 +217,7 @@ export default function StockTab() {
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Quantité" type="number" value={productForm.stockQuantity} onChange={e => setProductForm({ ...productForm, stockQuantity: e.target.value })}
                   className="px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
-                <input placeholder="Seuil alerte" type="number" value={productForm.lowStockThreshold} onChange={e => setProductForm({ ...productForm, lowStockThreshold: e.target.value })}
+                <input placeholder="Seuil alerte" type="number" value={productForm.stockAlertThreshold} onChange={e => setProductForm({ ...productForm, stockAlertThreshold: e.target.value })}
                   className="px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
               </div>
             </div>

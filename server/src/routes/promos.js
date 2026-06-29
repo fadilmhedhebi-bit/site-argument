@@ -179,7 +179,8 @@ router.delete('/:id', authenticate, requireRole('manager'), async (req, res) => 
 
 // POST /api/promos/validate - Valider un code promo (pour l'interface client)
 router.post('/validate', async (req, res) => {
-  const { code, businessId, subtotal } = req.body;
+  const { code, businessId, subtotal, orderTotal } = req.body;
+  const effectiveSubtotal = subtotal ?? orderTotal;
 
   if (!code?.trim()) return res.status(400).json({ error: 'Code requis' });
   if (!businessId || !UUID_RE.test(businessId)) return res.status(400).json({ error: 'businessId requis' });
@@ -198,7 +199,7 @@ router.post('/validate', async (req, res) => {
     }
 
     const p = promo.rows[0];
-    const orderSubtotal = parseFloat(subtotal) || 0;
+    const orderSubtotal = parseFloat(effectiveSubtotal) || 0;
 
     if (orderSubtotal < parseFloat(p.min_order_amount)) {
       return res.json({
@@ -225,6 +226,7 @@ router.post('/validate', async (req, res) => {
       valid: true,
       code: p.code,
       type: p.type,
+      value: parseFloat(p.value),
       discount: parseFloat(discount.toFixed(2)),
       description,
       expiresAt: p.expires_at,

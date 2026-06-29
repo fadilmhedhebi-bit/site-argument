@@ -9,7 +9,7 @@ export default function ClientCommandePage() {
   const [step, setStep] = useState('menu');
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerEmail: '',
-    deliveryAddress: '', paymentMethod: 'cash', promoCode: '', notes: '',
+    deliveryAddress: '', paymentMethod: 'cash', promoCode: '', deliveryNotes: '',
   });
   const [promoResult, setPromoResult] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
@@ -47,7 +47,7 @@ export default function ClientCommandePage() {
   const validatePromo = async () => {
     if (!form.promoCode) return;
     try {
-      const result = await api.post('/promos/validate', { code: form.promoCode, orderTotal: subtotal, businessId });
+      const result = await api.post('/promos/validate', { code: form.promoCode, subtotal, businessId });
       setPromoResult(result);
     } catch (err) { alert(err.message); setPromoResult(null); }
   };
@@ -196,7 +196,7 @@ export default function ClientCommandePage() {
                 </div>
                 <input placeholder="Adresse de livraison *" value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })}
                   className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
-                <textarea placeholder="Notes (étage, code, etc.)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+                <textarea placeholder="Notes (étage, code, etc.)" value={form.deliveryNotes} onChange={e => setForm({ ...form, deliveryNotes: e.target.value })}
                   className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" rows={2} />
 
                 <div>

@@ -109,6 +109,22 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/products/alerts - Alertes de stock
+router.get('/alerts', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, stock_quantity, stock_alert_threshold, category_id
+       FROM products WHERE business_id = $1 AND stock_quantity <= stock_alert_threshold AND is_available = true
+       ORDER BY stock_quantity ASC`,
+      [req.user.businessId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Stock alerts error:', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération des alertes de stock' });
+  }
+});
+
 // GET /api/products/:id - Détail d'un produit
 router.get('/:id', authenticate, async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
@@ -297,22 +313,6 @@ router.get('/public/:businessId', async (req, res) => {
   } catch (err) {
     console.error('Public menu error:', err);
     res.status(500).json({ error: 'Erreur lors de la récupération du menu' });
-  }
-});
-
-// GET /api/products/alerts - Alertes de stock
-router.get('/alerts', authenticate, requireRole('manager'), async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT id, name, stock_quantity, stock_alert_threshold, category_id
-       FROM products WHERE business_id = $1 AND stock_quantity <= stock_alert_threshold AND is_available = true
-       ORDER BY stock_quantity ASC`,
-      [req.user.businessId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Stock alerts error:', err);
-    res.status(500).json({ error: 'Erreur lors de la récupération des alertes de stock' });
   }
 });
 

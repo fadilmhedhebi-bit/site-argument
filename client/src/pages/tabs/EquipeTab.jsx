@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { useAuthStore } from '../../stores/authStore';
-import { setApiToken } from '../../utils/api';
 
 export default function EquipeTab() {
   const [drivers, setDrivers] = useState([]);
