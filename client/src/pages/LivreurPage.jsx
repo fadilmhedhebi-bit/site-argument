@@ -58,7 +58,7 @@ export default function LivreurPage() {
 
   useEffect(() => {
     if (!token) return;
-    const socket = io('/', { auth: { token }, path: '/socket.io' });
+    const socket = io(import.meta.env.VITE_API_URL || '/', { auth: { token }, path: '/socket.io' });
     socketRef.current = socket;
 
     socket.on('connect', () => setConnected(true));

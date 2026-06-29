@@ -9,7 +9,9 @@
     "install:all": "cd client && npm install && cd ../server && npm install",
     "db:init": "cd server && npm run db:init",
     "db:seed": "cd server && npm run db:seed",
-    "setup": "npm run install:all && npm run db:init && npm run db:seed"
+    "setup": "npm run install:all && npm run db:init && npm run db:seed",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

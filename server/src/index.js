@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { Server } from 'socket.io';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth.js';
@@ -14,6 +16,8 @@ import { verifySocketToken } from './middleware/auth.js';
 import pool from './config/db.js';
 
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +60,16 @@ app.get('/api/health', (_req, res) => {
 // 404 handler
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Route API non trouvée' });
+});
+
+// ============================================================
+// STATIC FILES (production)
+// ============================================================
+
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 // ============================================================
