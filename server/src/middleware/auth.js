@@ -18,16 +18,42 @@ export function authenticate(req, res, next) {
   try {
     req.user = jwt.verify(header.slice(7), JWT_SECRET);
     next();
-  } catch {
-    res.status(401).json({ error: 'Token invalide' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Session expirée, veuillez vous reconnecter', code: 'TOKEN_EXPIRED' });
+    }
+    res.status(401).json({ error: 'Token invalide', code: 'TOKEN_INVALID' });
   }
+}
+
+export function authenticateOptional(req, _res, next) {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(header.slice(7), JWT_SECRET);
+    } catch {
+      req.user = null;
+    }
+  }
+  next();
 }
 
 export function requireRole(...roles) {
   return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentification requise' });
+    }
     if (!roles.some(r => req.user.role === r || req.user.role === 'manager_driver')) {
-      return res.status(403).json({ error: 'Accès non autorisé' });
+      return res.status(403).json({ error: 'Accès non autorisé pour ce rôle' });
     }
     next();
   };
+}
+
+export function verifySocketToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
 }

@@ -25,7 +25,7 @@ export default function Drivers() {
   const createDriver = async () => {
     if (!form.firstName || !form.lastName) return alert('Prénom et nom requis');
     try {
-      const result = await api.post('/auth/drivers', form);
+      const result = await api.post('/auth/create-driver', form);
       setCreated(result);
       setForm({ firstName: '', lastName: '', phone: '' });
       load();

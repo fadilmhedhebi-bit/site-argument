@@ -55,7 +55,7 @@ router.get('/dashboard', authenticate, requireRole('manager'), async (req, res) 
     });
   } catch (err) {
     console.error('Dashboard error:', err);
-    res.status(500).json({ error: 'Erreur' });
+    res.status(500).json({ error: 'Erreur lors du chargement du tableau de bord' });
   }
 });
 
@@ -99,7 +99,7 @@ router.post('/close-day', authenticate, requireRole('manager'), async (req, res)
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Close day error:', err);
-    res.status(500).json({ error: 'Erreur' });
+    res.status(500).json({ error: 'Erreur lors de la clôture journalière' });
   }
 });
 
@@ -113,7 +113,7 @@ router.get('/closings', authenticate, requireRole('manager'), async (req, res) =
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Erreur' });
+    res.status(500).json({ error: 'Erreur lors de la récupération des clôtures' });
   }
 });
 

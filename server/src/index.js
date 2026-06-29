@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { WebSocketServer } from 'ws';
+import { Server } from 'socket.io';
 import http from 'http';
 import dotenv from 'dotenv';
 
@@ -10,15 +10,37 @@ import orderRoutes from './routes/orders.js';
 import tourRoutes from './routes/tours.js';
 import statsRoutes from './routes/stats.js';
 import promoRoutes from './routes/promos.js';
+import { verifySocketToken } from './middleware/auth.js';
+import pool from './config/db.js';
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws' });
+
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  path: '/socket.io',
+});
+
+// ============================================================
+// EXPRESS MIDDLEWARE
+// ============================================================
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+
+app.use((err, _req, res, _next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON invalide dans le corps de la requête' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Erreur interne du serveur' });
+});
+
+// ============================================================
+// API ROUTES
+// ============================================================
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -27,56 +49,127 @@ app.use('/api/tours', tourRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/promos', promoRoutes);
 
-// WebSocket connections by user id
-const clients = new Map();
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-wss.on('connection', (ws, req) => {
-  let userId = null;
+// 404 handler
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Route API non trouvée' });
+});
 
-  ws.on('message', (data) => {
+// ============================================================
+// SOCKET.IO - GPS en temps réel + notifications
+// ============================================================
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error('Token d\'authentification requis'));
+  }
+  const user = verifySocketToken(token);
+  if (!user) {
+    return next(new Error('Token invalide'));
+  }
+  socket.user = user;
+  next();
+});
+
+io.on('connection', (socket) => {
+  const { id: userId, businessId, role } = socket.user;
+
+  socket.join(`business:${businessId}`);
+  socket.join(`user:${userId}`);
+
+  if (['driver', 'manager_driver'].includes(role)) {
+    socket.join(`drivers:${businessId}`);
+  }
+
+  console.log(`Socket connected: ${userId} (${role})`);
+
+  // GPS position update from driver
+  socket.on('position:update', async (data) => {
+    if (!['driver', 'manager_driver'].includes(role)) return;
+
+    const { latitude, longitude, heading, speed } = data;
+    if (latitude == null || longitude == null) return;
+
     try {
-      const msg = JSON.parse(data);
-      if (msg.type === 'auth') {
-        userId = msg.userId;
-        if (!clients.has(userId)) clients.set(userId, new Set());
-        clients.get(userId).add(ws);
-      }
-      if (msg.type === 'position' && userId) {
-        broadcast(msg, userId);
-      }
-    } catch {}
+      await pool.query(
+        `INSERT INTO driver_positions (driver_id, latitude, longitude, heading, speed)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userId, latitude, longitude, heading || null, speed || null]
+      );
+    } catch (err) {
+      console.error('Save position error:', err);
+    }
+
+    socket.to(`business:${businessId}`).emit('position:updated', {
+      driverId: userId,
+      latitude,
+      longitude,
+      heading,
+      speed,
+      timestamp: new Date().toISOString(),
+    });
   });
 
-  ws.on('close', () => {
-    if (userId && clients.has(userId)) {
-      clients.get(userId).delete(ws);
-      if (clients.get(userId).size === 0) clients.delete(userId);
+  // Request current positions of all drivers
+  socket.on('positions:request', async () => {
+    try {
+      const result = await pool.query(
+        `SELECT DISTINCT ON (dp.driver_id) dp.driver_id, dp.latitude, dp.longitude, dp.heading, dp.speed, dp.recorded_at,
+                u.first_name, u.last_name
+         FROM driver_positions dp
+         JOIN users u ON u.id = dp.driver_id
+         WHERE u.business_id = $1 AND dp.recorded_at > NOW() - INTERVAL '30 minutes'
+         ORDER BY dp.driver_id, dp.recorded_at DESC`,
+        [businessId]
+      );
+      socket.emit('positions:all', result.rows);
+    } catch (err) {
+      console.error('Fetch positions error:', err);
     }
+  });
+
+  // Driver status toggle (available/busy)
+  socket.on('driver:status', (data) => {
+    socket.to(`business:${businessId}`).emit('driver:status', {
+      driverId: userId,
+      status: data.status,
+    });
+  });
+
+  socket.on('disconnect', () => {
+    socket.to(`business:${businessId}`).emit('driver:offline', { driverId: userId });
+    console.log(`Socket disconnected: ${userId}`);
   });
 });
 
-export function broadcast(data, excludeUserId) {
-  const message = JSON.stringify(data);
-  for (const [uid, sockets] of clients) {
-    if (uid !== excludeUserId) {
-      for (const ws of sockets) {
-        if (ws.readyState === 1) ws.send(message);
-      }
-    }
-  }
+// ============================================================
+// EXPORT IO GETTER FOR ROUTES
+// ============================================================
+
+let ioInstance = io;
+
+export function getIO() {
+  return ioInstance;
 }
 
-export function sendToUser(userId, data) {
-  const sockets = clients.get(userId);
-  if (sockets) {
-    const message = JSON.stringify(data);
-    for (const ws of sockets) {
-      if (ws.readyState === 1) ws.send(message);
-    }
-  }
+export function sendToUser(userId, event, data) {
+  io.to(`user:${userId}`).emit(event, data);
 }
+
+export function broadcastToBusiness(businessId, event, data) {
+  io.to(`business:${businessId}`).emit(event, data);
+}
+
+// ============================================================
+// START SERVER
+// ============================================================
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Tournée Snack Express server running on port ${PORT}`);
+  console.log(`Socket.IO ready on ws://localhost:${PORT}/socket.io`);
 });

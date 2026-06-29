@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { io } from 'socket.io-client';
 import { api } from '../utils/api';
 import { useAuthStore } from '../stores/authStore';
+import { useNotificationStore } from '../stores/notificationStore';
 
 import 'leaflet/dist/leaflet.css';
 
@@ -35,8 +37,10 @@ export default function MapView() {
   const [selectedTour, setSelectedTour] = useState(null);
   const [orders, setOrders] = useState([]);
   const [driverPositions, setDriverPositions] = useState({});
-  const user = useAuthStore((s) => s.user);
-  const wsRef = useRef(null);
+  const [connected, setConnected] = useState(false);
+  const { user, token } = useAuthStore();
+  const addNotification = useNotificationStore((s) => s.addNotification);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     api.get('/tours').then(setTours).catch(console.error);
@@ -44,26 +48,80 @@ export default function MapView() {
   }, []);
 
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-    wsRef.current = ws;
+    if (!token) return;
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'auth', userId: user?.id }));
-    };
+    const socket = io('/', { auth: { token }, path: '/socket.io' });
+    socketRef.current = socket;
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'position') {
-        setDriverPositions((prev) => ({
-          ...prev,
-          [data.driverId]: { lat: data.latitude, lng: data.longitude, name: data.driverName },
-        }));
+    socket.on('connect', () => {
+      setConnected(true);
+      socket.emit('positions:request');
+    });
+
+    socket.on('disconnect', () => setConnected(false));
+
+    socket.on('positions:all', (positions) => {
+      const posMap = {};
+      for (const p of positions) {
+        posMap[p.driver_id] = {
+          lat: p.latitude, lng: p.longitude,
+          name: `${p.first_name} ${p.last_name}`,
+          heading: p.heading, speed: p.speed,
+        };
       }
-    };
+      setDriverPositions(posMap);
+    });
 
-    return () => ws.close();
-  }, [user?.id]);
+    socket.on('position:updated', (data) => {
+      setDriverPositions((prev) => ({
+        ...prev,
+        [data.driverId]: { lat: data.latitude, lng: data.longitude, name: prev[data.driverId]?.name || 'Livreur' },
+      }));
+    });
+
+    socket.on('driver:offline', (data) => {
+      setDriverPositions((prev) => {
+        const next = { ...prev };
+        delete next[data.driverId];
+        return next;
+      });
+    });
+
+    socket.on('order:new', (data) => {
+      addNotification({ title: 'Nouvelle commande', message: `${data.orderNumber} - ${data.customerName}` });
+      api.get('/orders?status=in_delivery').then(setOrders).catch(() => {});
+    });
+
+    socket.on('order:status', (data) => {
+      if (data.status === 'in_delivery' || data.status === 'delivered') {
+        api.get('/orders?status=in_delivery').then(setOrders).catch(() => {});
+      }
+    });
+
+    // Send GPS if driver
+    let watchId = null;
+    if (user?.role === 'driver' || user?.role === 'manager_driver') {
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            socket.emit('position:update', {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              heading: pos.coords.heading,
+              speed: pos.coords.speed,
+            });
+          },
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 5000 }
+        );
+      }
+    }
+
+    return () => {
+      socket.disconnect();
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [token, user?.role]);
 
   const deliveryStops = orders
     .filter((o) => o.delivery_latitude && o.delivery_longitude)
@@ -84,7 +142,12 @@ export default function MapView() {
 
   return (
     <div>
-      <h1 className="text-2xl text-ink mb-4">Carte en temps réel</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl text-ink">Carte en temps réel</h1>
+        <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-go/20 text-go' : 'bg-stop/20 text-stop'}`}>
+          {connected ? 'Connecté' : 'Déconnecté'}
+        </span>
+      </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {tours.filter((t) => t.status === 'in_progress').map((t) => (
