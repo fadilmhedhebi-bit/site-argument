@@ -184,6 +184,6 @@ export function broadcastToBusiness(businessId, event, data) {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Tournée Snack Express server running on port ${PORT}`);
+  console.log(`Foodly server running on port ${PORT}`);
   console.log(`Socket.IO ready on ws://localhost:${PORT}/socket.io`);
 });

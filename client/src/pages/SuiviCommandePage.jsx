@@ -41,10 +41,10 @@ export default function SuiviCommandePage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-ink text-paper border-b-4 border-route">
+      <header className="bg-white border-b border-kraft">
         <div className="max-w-2xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-heading text-route">Suivi de commande</h1>
-          <p className="text-xs text-kraft">Tournée Snack Express</p>
+          <h1 className="text-xl font-heading text-ink">Suivi de commande</h1>
+          <p className="text-xs text-ink/40">Foodly</p>
         </div>
       </header>
 

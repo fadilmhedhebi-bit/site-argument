@@ -12,22 +12,21 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-ink text-paper border-b-4 border-route sticky top-0 z-50">
+      <header className="bg-white border-b border-kraft sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 no-underline">
-            <span className="text-2xl font-heading text-route">TSE</span>
-            <span className="hidden sm:block text-sm text-kraft">Tournée Snack Express</span>
+            <span className="text-2xl font-heading text-route tracking-tight">foodly</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             {user?.role === 'manager_driver' && (
               <Link
                 to={location.pathname === '/livraison' ? '/dashboard' : '/livraison'}
-                className="px-3 py-2 bg-route/20 text-route rounded-lg text-xs font-semibold hover:bg-route/30 no-underline"
+                className="px-3 py-2 bg-route/10 text-route rounded-lg text-xs font-semibold hover:bg-route/20 no-underline"
               >
                 {location.pathname === '/livraison' ? '← Gestion' : 'Tournée →'}
               </Link>
             )}
-            <button onClick={markAllRead} className="text-kraft hover:text-paper relative p-2">
+            <button onClick={markAllRead} className="text-ink/40 hover:text-ink relative p-2">
               🔔
               {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 bg-stop text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
@@ -36,12 +35,12 @@ export default function Layout() {
               )}
             </button>
             <div className="text-sm">
-              <span className="font-medium text-paper">{user?.firstName}</span>
-              <span className="hidden sm:inline ml-1 text-xs text-kraft/70">{roleLabel[user?.role]}</span>
+              <span className="font-medium text-ink">{user?.firstName}</span>
+              <span className="hidden sm:inline ml-1 text-xs text-ink/40">{roleLabel[user?.role]}</span>
             </div>
             <button
               onClick={() => { logout(); navigate('/login'); }}
-              className="text-xs text-kraft hover:text-stop transition-colors p-1"
+              className="text-xs text-ink/40 hover:text-stop transition-colors p-1"
             >
               <span className="hidden sm:inline">Déconnexion</span>
               <span className="sm:hidden">✕</span>
@@ -53,9 +52,9 @@ export default function Layout() {
       {notifications.length > 0 && (
         <div className="fixed top-16 right-2 left-2 sm:left-auto sm:right-4 z-50 space-y-2 sm:w-80">
           {notifications.slice(0, 3).map((n) => (
-            <div key={n.id} className="bg-ink text-paper p-3 rounded-lg shadow-lg border-l-4 border-route">
+            <div key={n.id} className="bg-white text-ink p-3 rounded-lg shadow-lg border border-kraft border-l-4 border-l-route">
               <p className="font-semibold text-sm">{n.title}</p>
-              <p className="text-xs text-kraft">{n.message}</p>
+              <p className="text-xs text-ink/50">{n.message}</p>
             </div>
           ))}
         </div>

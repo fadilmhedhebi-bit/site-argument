@@ -63,11 +63,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-paper flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-heading text-route">TSE</h1>
-          <p className="text-ink/60 mt-1">Tournée Snack Express</p>
+          <h1 className="text-5xl font-heading text-route tracking-tight">foodly</h1>
+          <p className="text-ink/40 mt-1 text-sm">Gestion de livraison simplifiée</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-kraft p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-kraft p-8">
           {mode === 'login' ? (
             <>
               <h2 className="text-xl font-heading text-ink mb-6">Connexion</h2>

@@ -49,14 +49,14 @@ export default function DashboardPage() {
 
       <TabComponent />
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-ink border-t-2 border-route z-50 sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-kraft z-50 sm:hidden">
         <div className="flex justify-around items-center h-14">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center justify-center w-full h-full text-xl transition-colors ${
-                activeTab === tab.id ? 'text-route' : 'text-kraft/60'
+                activeTab === tab.id ? 'grayscale-0' : 'grayscale opacity-40'
               }`}
             >
               <span>{tab.icon}</span>

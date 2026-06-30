@@ -71,11 +71,11 @@ export default function ClientCommandePage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-ink text-paper border-b-4 border-route">
+      <header className="bg-white border-b border-kraft">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-heading text-route">{menu.business?.name || 'Restaurant'}</h1>
-            {menu.business?.address && <p className="text-xs text-kraft">{menu.business.address}</p>}
+            <h1 className="text-xl font-heading text-ink">{menu.business?.name || 'Restaurant'}</h1>
+            {menu.business?.address && <p className="text-xs text-ink/40">{menu.business.address}</p>}
           </div>
           {cart.length > 0 && step === 'menu' && (
             <button onClick={() => setStep('checkout')} className="px-4 py-2 bg-route text-paper rounded-lg text-sm font-semibold">
