@@ -156,7 +156,7 @@ export default function TourneesTab() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg" style={{ height: 400 }}>
+      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg h-56 sm:h-72 md:h-[400px]">
         <MapContainer center={[48.8566, 2.3522]} zoom={12} style={{ height: '100%', width: '100%' }}>
           <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           {allPositions.length > 0 && <FitBounds positions={allPositions} />}
@@ -203,8 +203,8 @@ export default function TourneesTab() {
 
       <div>
         <h3 className="text-sm font-heading text-ink mb-3">Commandes par livreur</h3>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          <div className="flex-shrink-0 w-72 bg-kraft/30 rounded-xl p-3">
+        <div className="flex flex-col sm:flex-row gap-4 sm:overflow-x-auto pb-4">
+          <div className="w-full sm:flex-shrink-0 sm:w-72 bg-kraft/30 rounded-xl p-3">
             <h4 className="font-semibold text-ink text-sm mb-3 flex items-center justify-between">
               Non assignées <span className="text-xs bg-kraft px-2 py-0.5 rounded-full">{unassigned.length}</span>
             </h4>
@@ -226,7 +226,7 @@ export default function TourneesTab() {
           </div>
 
           {drivers.map(d => (
-            <div key={d.id} className="flex-shrink-0 w-72 bg-kraft/30 rounded-xl p-3">
+            <div key={d.id} className="w-full sm:flex-shrink-0 sm:w-72 bg-kraft/30 rounded-xl p-3">
               <h4 className="font-semibold text-ink text-sm mb-3 flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-route/20 flex items-center justify-center text-route text-xs font-bold">
                   {d.firstName[0]}{d.lastName[0]}

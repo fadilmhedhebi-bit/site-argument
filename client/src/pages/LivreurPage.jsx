@@ -134,7 +134,7 @@ export default function LivreurPage() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg" style={{ height: 350 }}>
+      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg h-56 sm:h-72 md:h-[350px]">
         <MapContainer
           center={myPos ? [myPos.lat, myPos.lng] : [48.8566, 2.3522]}
           zoom={13}
@@ -225,7 +225,7 @@ export default function LivreurPage() {
                       {action && (
                         <button
                           onClick={() => updateStatus(o.id, action.next)}
-                          className={`px-4 py-1.5 rounded-lg text-xs font-semibold ${
+                          className={`px-4 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-xs font-semibold ${
                             action.next === 'delivered' ? 'bg-go text-paper' : 'bg-route text-paper'
                           }`}
                         >

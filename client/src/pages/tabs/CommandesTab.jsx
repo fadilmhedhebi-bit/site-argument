@@ -77,19 +77,19 @@ export default function CommandesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto pb-1 -mb-1">
           {[
             { id: 'active', label: 'Actives' },
             { id: 'pending', label: 'En attente' },
             { id: 'confirmed', label: 'Confirmées' },
             { id: 'preparing', label: 'En prépa.' },
             { id: 'ready', label: 'Prêtes' },
-            { id: 'in_delivery', label: 'En livraison' },
+            { id: 'in_delivery', label: 'Livraison' },
             { id: 'delivered', label: 'Livrées' },
             { id: 'cancelled', label: 'Annulées' },
           ].map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                 filter === f.id ? 'bg-route text-paper' : 'bg-kraft/50 text-ink hover:bg-kraft'
               }`}>
               {f.label}
@@ -128,16 +128,16 @@ export default function CommandesTab() {
               {o.delivery_address && (
                 <p className="text-xs text-ink/40 mt-1 truncate">{o.delivery_address}</p>
               )}
-              <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   {o.driver_first_name ? (
-                    <span className="text-xs bg-route/10 text-route px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-route/10 text-route px-2 py-1 rounded-full">
                       {o.driver_first_name} {o.driver_last_name}
                     </span>
                   ) : (
                     <select onClick={e => e.stopPropagation()}
                       onChange={e => { if (e.target.value) assignDriver(o.id, e.target.value); }}
-                      value="" className="text-xs bg-kraft/50 text-ink rounded-lg px-2 py-1 border-none">
+                      value="" className="text-xs bg-kraft/50 text-ink rounded-lg px-2 py-2 border-none">
                       <option value="">Assigner livreur</option>
                       {drivers.filter(d => d.isActive).map(d => (
                         <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
@@ -145,22 +145,22 @@ export default function CommandesTab() {
                     </select>
                   )}
                 </div>
-                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
                   {nextStatus(o.status) && (
                     <button onClick={() => updateStatus(o.id, nextStatus(o.status))}
-                      className="text-[11px] px-2.5 py-1 bg-go/20 text-go rounded-lg font-semibold hover:bg-go/30">
+                      className="text-xs px-3 py-1.5 bg-go/20 text-go rounded-lg font-semibold hover:bg-go/30">
                       {statusLabels[nextStatus(o.status)]}
                     </button>
                   )}
                   {!['delivered', 'cancelled'].includes(o.status) && (
                     <button onClick={() => updateStatus(o.id, 'cancelled')}
-                      className="text-[11px] px-2.5 py-1 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
+                      className="text-xs px-3 py-1.5 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
                       Annuler
                     </button>
                   )}
                   {o.status === 'pending' && (
                     <button onClick={() => deleteOrder(o.id)}
-                      className="text-[11px] px-2.5 py-1 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
+                      className="text-xs px-3 py-1.5 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
                       Suppr.
                     </button>
                   )}
@@ -171,11 +171,11 @@ export default function CommandesTab() {
         </div>
 
         {detail && (
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-kraft p-5 sticky top-4">
+          <div className="fixed inset-0 bg-ink/40 z-40 lg:static lg:bg-transparent lg:col-span-1" onClick={() => setDetail(null)}>
+            <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white p-5 overflow-y-auto lg:static lg:max-w-none lg:rounded-xl lg:border lg:border-kraft lg:sticky lg:top-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-mono text-route font-bold">{detail.order_number}</h3>
-                <button onClick={() => setDetail(null)} className="text-ink/30 hover:text-ink text-lg">&times;</button>
+                <button onClick={() => setDetail(null)} className="text-ink/30 hover:text-ink text-2xl p-1">&times;</button>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[detail.status]}`}>
                 {statusLabels[detail.status]}
@@ -321,7 +321,7 @@ function CreateOrderModal({ products, onClose, onCreated }) {
           <button onClick={onClose} className="text-ink/30 hover:text-ink text-xl">&times;</button>
         </div>
 
-        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+        <div className="p-5 space-y-5 max-h-[85vh] sm:max-h-[70vh] overflow-y-auto">
           <div>
             <h3 className="text-sm font-semibold text-ink mb-2">Produits</h3>
             <input placeholder="Rechercher un produit..." value={search}
@@ -356,9 +356,9 @@ function CreateOrderModal({ products, onClose, onCreated }) {
                   <div key={c.id} className="flex items-center justify-between bg-kraft/20 rounded-lg px-3 py-2">
                     <span className="text-sm text-ink flex-1 min-w-0 truncate">{c.name}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => updateQty(c.id, -1)} className="w-6 h-6 rounded-full bg-kraft text-ink text-xs font-bold">−</button>
+                      <button onClick={() => updateQty(c.id, -1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-kraft text-ink text-xs font-bold">−</button>
                       <span className="font-mono text-sm w-5 text-center">{c.qty}</span>
-                      <button onClick={() => updateQty(c.id, 1)} className="w-6 h-6 rounded-full bg-kraft text-ink text-xs font-bold">+</button>
+                      <button onClick={() => updateQty(c.id, 1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-kraft text-ink text-xs font-bold">+</button>
                       <span className="font-mono text-sm text-ink w-16 text-right">{(c.price * c.qty).toFixed(2)} €</span>
                       <button onClick={() => removeFromCart(c.id)} className="text-stop/60 hover:text-stop text-sm ml-1">&times;</button>
                     </div>
@@ -379,7 +379,7 @@ function CreateOrderModal({ products, onClose, onCreated }) {
               <input placeholder="Nom complet *" value={form.customerName}
                 onChange={e => setForm({ ...form, customerName: e.target.value })}
                 className="w-full px-3 py-2 border border-kraft rounded-lg bg-paper text-sm focus:outline-none focus:border-route" />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input placeholder="Téléphone *" value={form.customerPhone}
                   onChange={e => setForm({ ...form, customerPhone: e.target.value })}
                   className="px-3 py-2 border border-kraft rounded-lg bg-paper text-sm focus:outline-none focus:border-route" />

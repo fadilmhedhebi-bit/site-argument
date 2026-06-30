@@ -82,7 +82,7 @@ export default function StatsTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-kraft p-5">
           <h3 className="text-sm font-heading text-ink mb-4">CA / jour (7 derniers jours)</h3>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={revenueTrend}>
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
@@ -94,7 +94,7 @@ export default function StatsTab() {
 
         <div className="bg-white rounded-xl border border-kraft p-5">
           <h3 className="text-sm font-heading text-ink mb-4">Livraisons / jour</h3>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={revenueTrend}>
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -107,7 +107,7 @@ export default function StatsTab() {
         <div className="bg-white rounded-xl border border-kraft p-5">
           <h3 className="text-sm font-heading text-ink mb-4">Répartition paiements</h3>
           {paymentData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={180}>
               <PieChart>
                 <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3}>
                   {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -124,7 +124,7 @@ export default function StatsTab() {
         <div className="bg-white rounded-xl border border-kraft p-5">
           <h3 className="text-sm font-heading text-ink mb-4">Classement livreurs (30j)</h3>
           {driverRanking.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={180}>
               <BarChart data={driverRanking} layout="vertical">
                 <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
@@ -141,7 +141,7 @@ export default function StatsTab() {
 
       <div className="bg-white rounded-xl border border-kraft p-5">
         <h3 className="text-sm font-heading text-ink mb-4">Heures de pointe</h3>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={160}>
           <BarChart data={peakHours}>
             <XAxis dataKey="heure" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />

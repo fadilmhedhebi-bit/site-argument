@@ -61,7 +61,7 @@ export default function HistoriqueTab() {
                 </div>
 
                 <h4 className="text-sm font-heading text-ink mt-4 mb-2">Encaissements</h4>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-paper rounded-lg p-3">
                     <p className="text-xs text-ink/40">Espèces</p>
                     <p className="font-mono text-ink font-semibold">{revCash.toFixed(2)} €</p>

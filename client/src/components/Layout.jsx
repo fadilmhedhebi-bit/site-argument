@@ -18,39 +18,40 @@ export default function Layout() {
             <span className="text-2xl font-heading text-route">TSE</span>
             <span className="hidden sm:block text-sm text-kraft">Tournée Snack Express</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user?.role === 'manager_driver' && (
               <Link
                 to={location.pathname === '/livraison' ? '/dashboard' : '/livraison'}
-                className="px-3 py-1.5 bg-route/20 text-route rounded-lg text-xs font-semibold hover:bg-route/30 no-underline"
+                className="px-3 py-2 bg-route/20 text-route rounded-lg text-xs font-semibold hover:bg-route/30 no-underline"
               >
-                {location.pathname === '/livraison' ? '← Gestion' : 'Ma tournée →'}
+                {location.pathname === '/livraison' ? '← Gestion' : 'Tournée →'}
               </Link>
             )}
-            <button onClick={markAllRead} className="text-kraft hover:text-paper relative">
+            <button onClick={markAllRead} className="text-kraft hover:text-paper relative p-2">
               🔔
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-stop text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-0 right-0 bg-stop text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </button>
-            <div className="hidden sm:block text-sm">
+            <div className="text-sm">
               <span className="font-medium text-paper">{user?.firstName}</span>
-              <span className="ml-1 text-xs text-kraft/70">{roleLabel[user?.role]}</span>
+              <span className="hidden sm:inline ml-1 text-xs text-kraft/70">{roleLabel[user?.role]}</span>
             </div>
             <button
               onClick={() => { logout(); navigate('/login'); }}
-              className="text-xs text-kraft hover:text-stop transition-colors"
+              className="text-xs text-kraft hover:text-stop transition-colors p-1"
             >
-              Déconnexion
+              <span className="hidden sm:inline">Déconnexion</span>
+              <span className="sm:hidden">✕</span>
             </button>
           </div>
         </div>
       </header>
 
       {notifications.length > 0 && (
-        <div className="fixed top-16 right-4 z-50 space-y-2 w-80">
+        <div className="fixed top-16 right-2 left-2 sm:left-auto sm:right-4 z-50 space-y-2 sm:w-80">
           {notifications.slice(0, 3).map((n) => (
             <div key={n.id} className="bg-ink text-paper p-3 rounded-lg shadow-lg border-l-4 border-route">
               <p className="font-semibold text-sm">{n.title}</p>
@@ -60,7 +61,7 @@ export default function Layout() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-6 pb-20">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20">
         <Outlet />
       </main>
     </div>

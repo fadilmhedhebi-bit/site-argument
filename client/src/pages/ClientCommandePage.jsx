@@ -163,9 +163,9 @@ export default function ClientCommandePage() {
                   <div key={c.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => updateQty(c.id, -1)} className="w-6 h-6 rounded-full bg-kraft text-ink text-xs font-bold">−</button>
+                        <button onClick={() => updateQty(c.id, -1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-kraft text-ink text-xs font-bold">−</button>
                         <span className="font-mono w-6 text-center text-xs">{c.qty}</span>
-                        <button onClick={() => updateQty(c.id, 1)} className="w-6 h-6 rounded-full bg-kraft text-ink text-xs font-bold">+</button>
+                        <button onClick={() => updateQty(c.id, 1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-kraft text-ink text-xs font-bold">+</button>
                       </div>
                       <span className="text-ink">{c.name}</span>
                     </div>
@@ -188,7 +188,7 @@ export default function ClientCommandePage() {
               <div className="space-y-3">
                 <input placeholder="Nom complet *" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })}
                   className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input placeholder="Téléphone *" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })}
                     className="px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
                   <input placeholder="Email" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })}

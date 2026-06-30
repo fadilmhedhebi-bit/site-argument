@@ -139,7 +139,7 @@ export default function EquipeTab() {
             ) : (
               <>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input placeholder="Prénom *" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
                       className="px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
                     <input placeholder="Nom *" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}

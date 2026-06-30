@@ -127,7 +127,34 @@ export default function StockTab() {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl border border-kraft overflow-x-auto">
+        <div className="space-y-2 sm:hidden">
+          {filtered.map(p => (
+            <div key={p.id} className={`bg-white rounded-xl border border-kraft p-4 ${p.stock_quantity <= (p.stock_alert_threshold || 5) ? 'border-stop/30 bg-stop/5' : ''}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-ink">{p.name}</p>
+                  {p.category_name && <p className="text-xs text-ink/40">{p.category_name}</p>}
+                </div>
+                <span className="font-mono text-route font-bold">{parseFloat(p.price).toFixed(2)} €</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => adjustStock(p.id, -1)} className="w-9 h-9 rounded-full bg-kraft text-ink font-bold text-lg">−</button>
+                  <span className={`font-mono text-lg w-8 text-center ${p.stock_quantity <= (p.stock_alert_threshold || 5) ? 'text-stop font-bold' : 'text-ink'}`}>
+                    {p.stock_quantity}
+                  </span>
+                  <button onClick={() => adjustStock(p.id, 1)} className="w-9 h-9 rounded-full bg-kraft text-ink font-bold text-lg">+</button>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => openEditProduct(p)} className="text-sm text-route py-1 px-2">Modifier</button>
+                  <button onClick={() => deleteProduct(p.id)} className="text-sm text-stop py-1 px-2">Suppr.</button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-center py-8 text-ink/30">Aucun produit</p>}
+        </div>
+        <div className="hidden sm:block bg-white rounded-xl border border-kraft overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-kraft/30">
               <tr>
@@ -147,11 +174,11 @@ export default function StockTab() {
                   <td className="px-4 py-3 text-center font-mono text-route">{parseFloat(p.price).toFixed(2)} €</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => adjustStock(p.id, -1)} className="w-7 h-7 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">−</button>
+                      <button onClick={() => adjustStock(p.id, -1)} className="w-8 h-8 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">−</button>
                       <span className={`font-mono w-8 text-center ${p.stock_quantity <= (p.stock_alert_threshold || 5) ? 'text-stop font-bold' : 'text-ink'}`}>
                         {p.stock_quantity}
                       </span>
-                      <button onClick={() => adjustStock(p.id, 1)} className="w-7 h-7 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">+</button>
+                      <button onClick={() => adjustStock(p.id, 1)} className="w-8 h-8 rounded-full bg-kraft text-ink font-bold hover:bg-kraft/80">+</button>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right space-x-2">
