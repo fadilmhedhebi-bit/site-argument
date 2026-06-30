@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-2 -mx-1 px-1">
+      <div className="hidden sm:flex gap-1 mb-6 overflow-x-auto pb-2 -mx-1 px-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -46,7 +46,24 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
       <TabComponent />
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-ink border-t-2 border-route z-50 sm:hidden">
+        <div className="flex justify-around items-center h-14">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center justify-center w-full h-full text-xl transition-colors ${
+                activeTab === tab.id ? 'text-route' : 'text-kraft/60'
+              }`}
+            >
+              <span>{tab.icon}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
