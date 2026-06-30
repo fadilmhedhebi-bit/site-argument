@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { api } from '../../utils/api';
 
-const COLORS = ['#F97316', '#22C55E', '#EF4444', '#E5E7EB', '#111827'];
+const COLORS = ['#1C8275', '#9472D4', '#3140A8', '#16A34A', '#1A1A2E'];
 
 export default function StatsTab() {
   const [stats, setStats] = useState(null);
@@ -87,7 +87,7 @@ export default function StatsTab() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
-              <Bar dataKey="CA" fill="#F97316" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="CA" fill="#1C8275" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -99,7 +99,7 @@ export default function StatsTab() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="Livraisons" fill="#22C55E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Livraisons" fill="#9472D4" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -129,7 +129,7 @@ export default function StatsTab() {
                 <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="Livrées" fill="#22C55E" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Livrées" fill="#9472D4" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="Problèmes" fill="#EF4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -146,7 +146,7 @@ export default function StatsTab() {
             <XAxis dataKey="heure" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip />
-            <Bar dataKey="commandes" fill="#F97316" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="commandes" fill="#1C8275" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

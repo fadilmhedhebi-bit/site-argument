@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import FoodlyLogo from '../components/FoodlyLogo';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
@@ -168,10 +169,11 @@ export default function CustomerPage() {
 
   if (view === 'auth') {
     return (
-      <div className="min-h-screen bg-paper flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-kraft shadow-sm w-full max-w-md p-8">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
+        <div className="bg-white rounded-[14px] shadow-sm w-full max-w-md p-8">
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-heading text-route tracking-tight">foodly</h1>
+            <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
+            <h1 className="text-3xl font-bold text-ink tracking-[-1.5px]">foodly</h1>
             <p className="text-ink/40 text-sm mt-1">Espace client</p>
           </div>
 
@@ -240,11 +242,12 @@ export default function CustomerPage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-kraft sticky top-0 z-40">
+      <header className="bg-white border-b border-[rgba(0,0,0,0.06)] sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <span className="text-xl font-heading text-route tracking-tight">foodly</span>
-            <span className="text-xs text-ink/40 ml-2">{customer?.businessName}</span>
+          <div className="flex items-center gap-2">
+            <FoodlyLogo size={28} />
+            <span className="text-lg font-bold text-ink tracking-[-1.5px]">foodly</span>
+            <span className="text-xs text-ink/40 ml-1">{customer?.businessName}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-ink/50">{customer?.firstName}</span>
@@ -311,7 +314,7 @@ export default function CustomerPage() {
 
         {view === 'loyalty' && (
           <div className="space-y-4">
-            <div className="bg-gradient-to-br from-route to-route/80 rounded-2xl p-6 text-paper">
+            <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
                 <span className="text-xs opacity-60">foodly</span>

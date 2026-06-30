@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import FoodlyLogo from '../components/FoodlyLogo';
 
 export default function ClientCommandePage() {
   const { businessId } = useParams();
@@ -71,11 +72,14 @@ export default function ClientCommandePage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-kraft">
+      <header className="bg-white border-b border-[rgba(0,0,0,0.06)]">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-heading text-ink">{menu.business?.name || 'Restaurant'}</h1>
+          <div className="flex items-center gap-2.5">
+            <FoodlyLogo size={28} />
+            <div>
+              <h1 className="text-lg font-bold text-ink tracking-[-0.5px]">{menu.business?.name || 'Restaurant'}</h1>
             {menu.business?.address && <p className="text-xs text-ink/40">{menu.business.address}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <a href={`/client/${businessId}`} className="text-xs text-route hover:underline no-underline">Mon compte</a>

@@ -8,12 +8,12 @@ import { useNotificationStore } from '../../stores/notificationStore';
 import 'leaflet/dist/leaflet.css';
 
 const driverIcon = new L.DivIcon({
-  html: '<div style="background:#F97316;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🚗</div>',
+  html: '<div style="background:#3140A8;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🚗</div>',
   className: '', iconSize: [32, 32], iconAnchor: [16, 16],
 });
 
 const stopIcon = new L.DivIcon({
-  html: '<div style="background:#EF4444;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);">📍</div>',
+  html: '<div style="background:#9472D4;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);">📍</div>',
   className: '', iconSize: [24, 24], iconAnchor: [12, 12],
 });
 

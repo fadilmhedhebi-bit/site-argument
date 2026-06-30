@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import FoodlyLogo from '../components/FoodlyLogo';
 
 const STEPS = [
   { key: 'received', label: 'Commande reçue', statuses: ['pending', 'confirmed'] },
@@ -41,10 +42,13 @@ export default function SuiviCommandePage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-kraft">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-heading text-ink">Suivi de commande</h1>
-          <p className="text-xs text-ink/40">Foodly</p>
+      <header className="bg-white border-b border-[rgba(0,0,0,0.06)]">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2.5">
+          <FoodlyLogo size={28} />
+          <div>
+            <h1 className="text-lg font-bold text-ink tracking-[-0.5px]">Suivi de commande</h1>
+            <p className="text-[10px] font-medium uppercase tracking-[2.5px] text-route">Foodly</p>
+          </div>
         </div>
       </header>
 
