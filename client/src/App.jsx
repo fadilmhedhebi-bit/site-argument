@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import LivreurPage from './pages/LivreurPage';
 import ClientCommandePage from './pages/ClientCommandePage';
+import CustomerPage from './pages/CustomerPage';
 import SuiviCommandePage from './pages/SuiviCommandePage';
 
 function ProtectedRoute({ children, roles }) {
@@ -32,6 +33,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/commander/:businessId" element={<ClientCommandePage />} />
+        <Route path="/client/:businessId" element={<CustomerPage />} />
         <Route path="/suivi" element={<SuiviCommandePage />} />
         <Route path="/suivi/:orderNumber" element={<SuiviCommandePage />} />
 

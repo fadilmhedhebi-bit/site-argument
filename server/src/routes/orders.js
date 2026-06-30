@@ -196,12 +196,12 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/orders/public/:businessId - Commande publique (sans auth)
-router.post('/public/:businessId', async (req, res) => {
+// POST /api/orders/public/:businessId - Commande publique (sans auth ou avec auth client)
+router.post('/public/:businessId', authenticateOptional, async (req, res) => {
   const {
     customerName, customerPhone, customerEmail, deliveryAddress,
     deliveryLatitude, deliveryLongitude, deliveryNotes,
-    paymentMethod, items, promoCode,
+    paymentMethod, items, promoCode, customerId,
   } = req.body;
 
   if (!UUID_RE.test(req.params.businessId)) return res.status(400).json({ error: 'Business ID invalide' });
@@ -256,11 +256,12 @@ router.post('/public/:businessId', async (req, res) => {
     const orderResult = await client.query(
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
        delivery_address, delivery_latitude, delivery_longitude, delivery_notes,
-       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id, customer_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
        deliveryAddress.trim(), deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
-       subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId]
+       subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
+       customerId && UUID_RE.test(customerId) ? customerId : null]
     );
 
     for (const item of orderItems) {
@@ -275,6 +276,32 @@ router.post('/public/:businessId', async (req, res) => {
       `INSERT INTO order_status_history (order_id, status) VALUES ($1, 'pending')`,
       [orderResult.rows[0].id]
     );
+
+    if (customerId && UUID_RE.test(customerId)) {
+      await client.query(
+        'UPDATE customers SET total_orders = total_orders + 1, total_spent = total_spent + $1, updated_at = NOW() WHERE id = $2',
+        [total, customerId]
+      );
+
+      const loyaltyConfig = await client.query(
+        'SELECT points_per_euro, is_active FROM loyalty_config WHERE business_id = $1',
+        [businessId]
+      );
+      if (loyaltyConfig.rows.length && loyaltyConfig.rows[0].is_active) {
+        const pointsEarned = Math.floor(total * loyaltyConfig.rows[0].points_per_euro);
+        if (pointsEarned > 0) {
+          await client.query(
+            'UPDATE customers SET loyalty_points = loyalty_points + $1 WHERE id = $2',
+            [pointsEarned, customerId]
+          );
+          await client.query(
+            `INSERT INTO loyalty_transactions (customer_id, type, points, description, order_id)
+             VALUES ($1, 'earn', $2, $3, $4)`,
+            [customerId, pointsEarned, `Commande ${orderNumber}`, orderResult.rows[0].id]
+          );
+        }
+      }
+    }
 
     await client.query('COMMIT');
 

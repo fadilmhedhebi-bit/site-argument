@@ -77,11 +77,14 @@ export default function ClientCommandePage() {
             <h1 className="text-xl font-heading text-ink">{menu.business?.name || 'Restaurant'}</h1>
             {menu.business?.address && <p className="text-xs text-ink/40">{menu.business.address}</p>}
           </div>
-          {cart.length > 0 && step === 'menu' && (
-            <button onClick={() => setStep('checkout')} className="px-4 py-2 bg-route text-paper rounded-lg text-sm font-semibold">
-              Panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <a href={`/client/${businessId}`} className="text-xs text-route hover:underline no-underline">Mon compte</a>
+            {cart.length > 0 && step === 'menu' && (
+              <button onClick={() => setStep('checkout')} className="px-4 py-2 bg-route text-paper rounded-lg text-sm font-semibold">
+                Panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

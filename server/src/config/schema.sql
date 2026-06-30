@@ -258,6 +258,101 @@ CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read) WHERE NOT is_read;
 
 -- ============================================================
+-- INGREDIENTS (matières premières)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ingredients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  unit VARCHAR(50) NOT NULL DEFAULT 'unité',
+  quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+  alert_threshold DECIMAL(10,2) DEFAULT 5,
+  cost_per_unit DECIMAL(10,2) DEFAULT 0,
+  supplier VARCHAR(255),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ingredients_business ON ingredients(business_id);
+
+CREATE TABLE IF NOT EXISTS ingredient_movements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('in', 'out', 'adjustment', 'waste')),
+  quantity DECIMAL(10,2) NOT NULL,
+  note TEXT,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ingredient_movements_ingredient ON ingredient_movements(ingredient_id);
+
+-- ============================================================
+-- CUSTOMERS & LOYALTY
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS customers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  loyalty_points INT DEFAULT 0,
+  total_orders INT DEFAULT 0,
+  total_spent DECIMAL(10,2) DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(business_id, email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_customers_business ON customers(business_id);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
+
+CREATE TABLE IF NOT EXISTS loyalty_config (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID UNIQUE NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  points_per_euro INT DEFAULT 1,
+  is_active BOOLEAN DEFAULT true,
+  welcome_points INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS loyalty_rewards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  points_cost INT NOT NULL,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('discount_percentage', 'discount_fixed', 'free_product', 'free_delivery')),
+  value DECIMAL(10,2) DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_loyalty_rewards_business ON loyalty_rewards(business_id);
+
+CREATE TABLE IF NOT EXISTS loyalty_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('earn', 'redeem', 'bonus', 'adjustment')),
+  points INT NOT NULL,
+  description TEXT,
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  reward_id UUID REFERENCES loyalty_rewards(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_loyalty_transactions_customer ON loyalty_transactions(customer_id);
+
+-- Add customer_id to orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+
+-- ============================================================
 -- HELPER: generate order numbers
 -- ============================================================
 

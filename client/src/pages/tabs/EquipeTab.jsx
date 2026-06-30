@@ -77,6 +77,18 @@ export default function EquipeTab() {
             <p className="font-mono text-xs text-ink/50 mt-0.5">{user?.businessId}</p>
           </div>
         </div>
+        <div className="mt-4 pt-4 border-t border-kraft">
+          <p className="text-ink/40 text-xs uppercase tracking-wide mb-2">Liens pour vos clients</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input readOnly value={`${window.location.origin}/client/${user?.businessId}`}
+                className="flex-1 px-3 py-2 border border-kraft rounded-lg bg-kraft/20 text-xs font-mono text-ink/60" />
+              <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/client/${user?.businessId}`); }}
+                className="px-3 py-2 bg-route text-paper rounded-lg text-xs font-semibold">Copier</button>
+            </div>
+            <p className="text-xs text-ink/40">Espace client avec compte, fidélité et commande</p>
+          </div>
+        </div>
       </div>
 
       <div>

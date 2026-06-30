@@ -12,6 +12,8 @@ import orderRoutes from './routes/orders.js';
 import tourRoutes from './routes/tours.js';
 import statsRoutes from './routes/stats.js';
 import promoRoutes from './routes/promos.js';
+import ingredientRoutes from './routes/ingredients.js';
+import customerRoutes from './routes/customers.js';
 import { verifySocketToken } from './middleware/auth.js';
 import pool from './config/db.js';
 
@@ -52,6 +54,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/promos', promoRoutes);
+app.use('/api/ingredients', ingredientRoutes);
+app.use('/api/customers', customerRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

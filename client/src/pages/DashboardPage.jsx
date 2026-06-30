@@ -3,6 +3,8 @@ import CommandesTab from './tabs/CommandesTab';
 import TourneesTab from './tabs/TourneesTab';
 import StatsTab from './tabs/StatsTab';
 import StockTab from './tabs/StockTab';
+import IngredientsTab from './tabs/IngredientsTab';
+import ClientsTab from './tabs/ClientsTab';
 import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
 
@@ -11,6 +13,8 @@ const tabs = [
   { id: 'tournees', label: 'Tournées', icon: '🚗' },
   { id: 'stats', label: 'Stats', icon: '📊' },
   { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'ingredients', label: 'Ingrédients', icon: '🧂' },
+  { id: 'clients', label: 'Clients', icon: '💳' },
   { id: 'equipe', label: 'Équipe', icon: '👥' },
   { id: 'historique', label: 'Historique', icon: '📒' },
 ];
@@ -20,6 +24,8 @@ const components = {
   tournees: TourneesTab,
   stats: StatsTab,
   stock: StockTab,
+  ingredients: IngredientsTab,
+  clients: ClientsTab,
   equipe: EquipeTab,
   historique: HistoriqueTab,
 };
