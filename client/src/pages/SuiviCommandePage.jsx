@@ -137,9 +137,25 @@ export default function SuiviCommandePage() {
                       <span className="font-mono text-ink/60">{parseFloat(item.total_price || item.unit_price * item.quantity).toFixed(2)} €</span>
                     </div>
                   ))}
-                  <div className="flex justify-between font-bold text-sm border-t border-kraft pt-2 mt-2">
-                    <span>Total</span>
-                    <span className="font-mono text-route">{parseFloat(order.total).toFixed(2)} €</span>
+                  <div className="border-t border-kraft mt-2 pt-2 space-y-1 text-sm">
+                    <div className="flex justify-between text-ink/50">
+                      <span>Sous-total</span>
+                      <span className="font-mono">{parseFloat(order.subtotal).toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-ink/50">
+                      <span>Livraison</span>
+                      <span className="font-mono">{parseFloat(order.delivery_fee).toFixed(2)} €</span>
+                    </div>
+                    {parseFloat(order.discount_amount) > 0 && (
+                      <div className="flex justify-between text-go">
+                        <span>Remise</span>
+                        <span className="font-mono">-{parseFloat(order.discount_amount).toFixed(2)} €</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold border-t border-kraft pt-1">
+                      <span>Total</span>
+                      <span className="font-mono text-route">{parseFloat(order.total).toFixed(2)} €</span>
+                    </div>
                   </div>
                 </div>
               )}

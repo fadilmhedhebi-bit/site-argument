@@ -302,7 +302,7 @@ router.get('/track/:orderNumber', async (req, res) => {
       `SELECT o.order_number, o.status, o.customer_name, o.delivery_address, o.total,
               o.subtotal, o.delivery_fee, o.discount_amount,
               o.payment_method, o.estimated_delivery_at, o.delivered_at, o.created_at,
-              u.first_name as driver_first_name
+              u.first_name as driver_first_name, u.last_name as driver_last_name
        FROM orders o LEFT JOIN users u ON u.id = o.driver_id
        WHERE o.order_number = $1`,
       [orderNumber]

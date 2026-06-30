@@ -62,6 +62,8 @@ router.post('/register', async (req, res) => {
         role: user.role,
         businessId,
         businessName: businessName.trim(),
+        businessAddress: businessAddress?.trim() || null,
+        businessPhone: businessPhone?.trim() || null,
       },
     });
   } catch (err) {
@@ -83,7 +85,8 @@ router.post('/login', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.business_id, u.username, u.password_hash, u.first_name, u.last_name,
-              u.role, u.is_active, b.name as business_name
+              u.role, u.is_active, b.name as business_name, b.address as business_address,
+              b.phone as business_phone
        FROM users u JOIN businesses b ON b.id = u.business_id
        WHERE u.username = $1`,
       [username.trim()]
@@ -114,6 +117,8 @@ router.post('/login', async (req, res) => {
         role: user.role,
         businessId: user.business_id,
         businessName: user.business_name,
+        businessAddress: user.business_address,
+        businessPhone: user.business_phone,
       },
     });
   } catch (err) {
