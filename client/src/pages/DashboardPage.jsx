@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CommandesTab from './tabs/CommandesTab';
 import TourneesTab from './tabs/TourneesTab';
 import StatsTab from './tabs/StatsTab';
 import StockTab from './tabs/StockTab';
@@ -6,6 +7,7 @@ import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
 
 const tabs = [
+  { id: 'commandes', label: 'Commandes', icon: '🛒' },
   { id: 'tournees', label: 'Tournées', icon: '🚗' },
   { id: 'stats', label: 'Stats', icon: '📊' },
   { id: 'stock', label: 'Stock', icon: '📦' },
@@ -14,6 +16,7 @@ const tabs = [
 ];
 
 const components = {
+  commandes: CommandesTab,
   tournees: TourneesTab,
   stats: StatsTab,
   stock: StockTab,
@@ -22,7 +25,7 @@ const components = {
 };
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState('tournees');
+  const [activeTab, setActiveTab] = useState('commandes');
   const TabComponent = components[activeTab];
 
   return (
