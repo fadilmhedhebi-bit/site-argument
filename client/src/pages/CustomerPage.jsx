@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import FoodlyLogo from '../components/FoodlyLogo';
+import { useTheme } from '../ThemeContext';
+import { colors } from '../theme';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
@@ -21,6 +23,7 @@ async function customerRequest(method, path, body, token) {
 
 export default function CustomerPage() {
   const { businessId } = useParams();
+  const { t, isDark } = useTheme();
   const [customer, setCustomer] = useState(null);
   const [token, setToken] = useState(null);
   const [view, setView] = useState('auth');
@@ -167,23 +170,29 @@ export default function CustomerPage() {
     } catch (err) { alert(err.message); }
   };
 
+  const authGradient = isDark
+    ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)`
+    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+
   if (view === 'auth') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
-        <div className="bg-white rounded-[14px] shadow-sm w-full max-w-md p-8">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
+        <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
-            <h1 className="text-3xl font-bold text-ink tracking-[-1.5px]">foodly</h1>
-            <p className="text-ink/40 text-sm mt-1">Espace client</p>
+            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>foodly</h1>
+            <p className="text-sm mt-1" style={{ color: t.text2 }}>Espace client</p>
           </div>
 
           <div className="flex gap-2 mb-6">
             <button onClick={() => setAuthMode('login')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${authMode === 'login' ? 'bg-route text-paper' : 'bg-kraft/50 text-ink'}`}>
+              className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={authMode === 'login' ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.bg, color: t.text1 }}>
               Connexion
             </button>
             <button onClick={() => setAuthMode('register')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${authMode === 'register' ? 'bg-route text-paper' : 'bg-kraft/50 text-ink'}`}>
+              className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={authMode === 'register' ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.bg, color: t.text1 }}>
               Inscription
             </button>
           </div>
@@ -192,12 +201,13 @@ export default function CustomerPage() {
             <div className="space-y-3">
               <input type="email" placeholder="Email" value={loginForm.email}
                 onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
-                className="w-full px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <input type="password" placeholder="Mot de passe" value={loginForm.password}
                 onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <button onClick={handleLogin} disabled={loading}
-                className="w-full py-3 bg-route text-paper rounded-lg font-semibold hover:bg-route/90 disabled:opacity-50">
+                className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
                 {loading ? 'Connexion...' : 'Se connecter'}
               </button>
             </div>
@@ -206,29 +216,30 @@ export default function CustomerPage() {
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Prénom *" value={registerForm.firstName}
                   onChange={e => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                  className="px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
                 <input placeholder="Nom *" value={registerForm.lastName}
                   onChange={e => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                  className="px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               </div>
               <input type="email" placeholder="Email *" value={registerForm.email}
                 onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
-                className="w-full px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <input placeholder="Téléphone" value={registerForm.phone}
                 onChange={e => setRegisterForm({ ...registerForm, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <input type="password" placeholder="Mot de passe (6 car. min) *" value={registerForm.password}
                 onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
-                className="w-full px-4 py-3 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <button onClick={handleRegister} disabled={loading}
-                className="w-full py-3 bg-route text-paper rounded-lg font-semibold hover:bg-route/90 disabled:opacity-50">
+                className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
                 {loading ? 'Inscription...' : 'Créer mon compte'}
               </button>
             </div>
           )}
 
-          <p className="text-xs text-ink/30 text-center mt-4">
-            <a href={`/commander/${businessId}`} className="text-route hover:underline">Commander sans compte</a>
+          <p className="text-xs text-center mt-4" style={{ color: t.text3 }}>
+            <a href={`/commander/${businessId}`} className="hover:underline" style={{ color: t.accent }}>Commander sans compte</a>
           </p>
         </div>
       </div>
@@ -241,16 +252,16 @@ export default function CustomerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-[rgba(0,0,0,0.06)] sticky top-0 z-40">
+    <div style={{ backgroundColor: t.bg, minHeight: '100vh' }}>
+      <header className="sticky top-0 z-40" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FoodlyLogo size={28} />
-            <span className="text-lg font-bold text-ink tracking-[-1.5px]">foodly</span>
-            <span className="text-xs text-ink/40 ml-1">{customer?.businessName}</span>
+            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>foodly</span>
+            <span className="text-xs ml-1" style={{ color: t.text2 }}>{customer?.businessName}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-ink/50">{customer?.firstName}</span>
+            <span className="text-xs" style={{ color: t.text2 }}>{customer?.firstName}</span>
             <button onClick={logout} className="text-xs text-stop hover:underline">Déconnexion</button>
           </div>
         </div>
@@ -265,9 +276,11 @@ export default function CustomerPage() {
             { id: 'history', label: 'Historique', icon: '📋' },
           ].map(tab => (
             <button key={tab.id} onClick={() => { setView(tab.id); if (tab.id === 'order') setOrderStep('menu'); }}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
-                view === tab.id ? 'bg-route text-paper' : 'bg-kraft/50 text-ink hover:bg-kraft'
-              }`}>
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+              style={view === tab.id
+                ? { backgroundColor: t.accent, color: '#fff' }
+                : { backgroundColor: t.bg, color: t.text1 }
+              }>
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
             </button>
@@ -276,37 +289,39 @@ export default function CustomerPage() {
 
         {view === 'home' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-kraft p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-route/10 flex items-center justify-center text-2xl mx-auto mb-3">
+            <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl mx-auto mb-3" style={{ backgroundColor: t.accentBg, color: t.accent }}>
                 {customer?.firstName?.[0]}{customer?.lastName?.[0]}
               </div>
-              <h2 className="text-xl font-heading text-ink">Bonjour, {customer?.firstName} !</h2>
-              <p className="text-sm text-ink/50 mt-1">{customer?.email}</p>
+              <h2 className="text-xl font-heading" style={{ color: t.text1 }}>Bonjour, {customer?.firstName} !</h2>
+              <p className="text-sm mt-1" style={{ color: t.text2 }}>{customer?.email}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-xl border border-kraft p-4 text-center">
-                <p className="text-xs text-ink/50">Points fidélité</p>
-                <p className="text-2xl font-heading text-route mt-1">{customer?.loyaltyPoints || 0}</p>
+              <div className="rounded-xl p-4 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                <p className="text-xs" style={{ color: t.text2 }}>Points fidélité</p>
+                <p className="text-2xl font-heading mt-1" style={{ color: t.accent }}>{customer?.loyaltyPoints || 0}</p>
               </div>
-              <div className="bg-white rounded-xl border border-kraft p-4 text-center">
-                <p className="text-xs text-ink/50">Commandes</p>
-                <p className="text-2xl font-heading text-ink mt-1">{customer?.totalOrders || 0}</p>
+              <div className="rounded-xl p-4 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                <p className="text-xs" style={{ color: t.text2 }}>Commandes</p>
+                <p className="text-2xl font-heading mt-1" style={{ color: t.text1 }}>{customer?.totalOrders || 0}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button onClick={() => { setView('order'); setOrderStep('menu'); }}
-                className="bg-route text-paper rounded-xl p-4 text-left hover:bg-route/90 transition-colors">
+                className="rounded-xl p-4 text-left hover:opacity-90 transition-colors"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
                 <span className="text-2xl">🛒</span>
                 <p className="font-semibold mt-2">Passer commande</p>
-                <p className="text-xs text-paper/70">Parcourir le menu</p>
+                <p className="text-xs" style={{ opacity: 0.7 }}>Parcourir le menu</p>
               </button>
               <button onClick={() => setView('loyalty')}
-                className="bg-white border border-kraft rounded-xl p-4 text-left hover:bg-kraft/20 transition-colors">
+                className="rounded-xl p-4 text-left transition-colors"
+                style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <span className="text-2xl">💳</span>
-                <p className="font-semibold text-ink mt-2">Ma carte de fidélité</p>
-                <p className="text-xs text-ink/50">{customer?.loyaltyPoints || 0} points disponibles</p>
+                <p className="font-semibold mt-2" style={{ color: t.text1 }}>Ma carte de fidélité</p>
+                <p className="text-xs" style={{ color: t.text2 }}>{customer?.loyaltyPoints || 0} points disponibles</p>
               </button>
             </div>
           </div>
@@ -314,7 +329,7 @@ export default function CustomerPage() {
 
         {view === 'loyalty' && (
           <div className="space-y-4">
-            <div className="rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
+            <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)` : 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
                 <span className="text-xs opacity-60">foodly</span>
@@ -329,18 +344,19 @@ export default function CustomerPage() {
 
             {loyalty?.rewards?.length > 0 && (
               <div>
-                <h3 className="text-sm font-heading text-ink mb-3">Récompenses disponibles</h3>
+                <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Récompenses disponibles</h3>
                 <div className="space-y-2">
                   {loyalty.rewards.map(r => (
-                    <div key={r.id} className="bg-white rounded-xl border border-kraft p-4 flex items-center justify-between">
+                    <div key={r.id} className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                       <div>
-                        <p className="font-semibold text-ink text-sm">{r.name}</p>
-                        {r.description && <p className="text-xs text-ink/50">{r.description}</p>}
-                        <p className="text-xs font-mono text-route mt-1">{r.points_cost} points</p>
+                        <p className="font-semibold text-sm" style={{ color: t.text1 }}>{r.name}</p>
+                        {r.description && <p className="text-xs" style={{ color: t.text2 }}>{r.description}</p>}
+                        <p className="text-xs font-mono mt-1" style={{ color: t.accent }}>{r.points_cost} points</p>
                       </div>
                       <button onClick={() => redeemReward(r.id)}
                         disabled={(loyalty?.points || 0) < r.points_cost}
-                        className="px-4 py-2 bg-route text-paper rounded-lg text-xs font-semibold disabled:opacity-30">
+                        className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-30"
+                        style={{ backgroundColor: t.accent, color: '#fff' }}>
                         Échanger
                       </button>
                     </div>
@@ -351,16 +367,16 @@ export default function CustomerPage() {
 
             {loyalty?.transactions?.length > 0 && (
               <div>
-                <h3 className="text-sm font-heading text-ink mb-3">Historique des points</h3>
-                <div className="bg-white rounded-xl border border-kraft divide-y divide-kraft/30">
-                  {loyalty.transactions.map(t => (
-                    <div key={t.id} className="px-4 py-3 flex items-center justify-between">
+                <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Historique des points</h3>
+                <div className="rounded-xl" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                  {loyalty.transactions.map((txn, i) => (
+                    <div key={txn.id} className="px-4 py-3 flex items-center justify-between" style={i > 0 ? { borderTop: `1px solid ${t.border}` } : undefined}>
                       <div>
-                        <p className="text-sm text-ink">{t.description}</p>
-                        <p className="text-xs text-ink/40">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+                        <p className="text-sm" style={{ color: t.text1 }}>{txn.description}</p>
+                        <p className="text-xs" style={{ color: t.text2 }}>{new Date(txn.created_at).toLocaleDateString('fr-FR')}</p>
                       </div>
-                      <span className={`font-mono text-sm font-bold ${t.points > 0 ? 'text-go' : 'text-stop'}`}>
-                        {t.points > 0 ? '+' : ''}{t.points}
+                      <span className={`font-mono text-sm font-bold ${txn.points > 0 ? 'text-go' : 'text-stop'}`}>
+                        {txn.points > 0 ? '+' : ''}{txn.points}
                       </span>
                     </div>
                   ))}
@@ -372,22 +388,23 @@ export default function CustomerPage() {
 
         {view === 'history' && (
           <div className="space-y-2">
-            <h3 className="text-sm font-heading text-ink mb-3">Mes commandes</h3>
+            <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Mes commandes</h3>
             {orders.length > 0 ? orders.map(o => (
-              <div key={o.order_number} className="bg-white rounded-xl border border-kraft p-4 flex items-center justify-between">
+              <div key={o.order_number} className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <div>
-                  <span className="font-mono text-route font-bold text-sm">{o.order_number}</span>
-                  <p className="text-xs text-ink/40 mt-0.5">{new Date(o.created_at).toLocaleDateString('fr-FR')}</p>
+                  <span className="font-mono font-bold text-sm" style={{ color: t.accent }}>{o.order_number}</span>
+                  <p className="text-xs mt-0.5" style={{ color: t.text2 }}>{new Date(o.created_at).toLocaleDateString('fr-FR')}</p>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-sm text-ink">{parseFloat(o.total).toFixed(2)} €</span>
-                  <p className={`text-xs mt-0.5 ${o.status === 'delivered' ? 'text-go' : o.status === 'cancelled' ? 'text-stop' : 'text-route'}`}>
+                  <span className="font-mono text-sm" style={{ color: t.text1 }}>{parseFloat(o.total).toFixed(2)} €</span>
+                  <p className={`text-xs mt-0.5 ${o.status === 'delivered' ? 'text-go' : o.status === 'cancelled' ? 'text-stop' : ''}`}
+                    style={o.status !== 'delivered' && o.status !== 'cancelled' ? { color: t.accent } : undefined}>
                     {statusLabels[o.status] || o.status}
                   </p>
                 </div>
               </div>
             )) : (
-              <p className="text-center py-8 text-ink/30">Aucune commande</p>
+              <p className="text-center py-8" style={{ color: t.text3 }}>Aucune commande</p>
             )}
           </div>
         )}
@@ -396,7 +413,8 @@ export default function CustomerPage() {
           <div className="space-y-6">
             {cart.length > 0 && (
               <button onClick={() => setOrderStep('checkout')}
-                className="w-full py-3 bg-route text-paper rounded-xl font-semibold text-sm sticky top-16 z-30">
+                className="w-full py-3 rounded-xl font-semibold text-sm sticky top-16 z-30"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
                 Voir le panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
               </button>
             )}
@@ -406,26 +424,26 @@ export default function CustomerPage() {
               if (catProducts.length === 0) return null;
               return (
                 <div key={cat.id}>
-                  <h2 className="text-lg font-heading text-ink mb-3">{cat.name}</h2>
+                  <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>{cat.name}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {catProducts.map(p => {
                       const inCart = cart.find(c => c.id === p.id);
                       return (
-                        <div key={p.id} className="bg-white rounded-xl border border-kraft p-4 flex items-center justify-between gap-3">
+                        <div key={p.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-ink text-sm">{p.name}</h3>
-                            {p.description && <p className="text-xs text-ink/50 mt-0.5 truncate">{p.description}</p>}
-                            <p className="font-mono text-route font-bold mt-1">{parseFloat(p.price).toFixed(2)} €</p>
+                            <h3 className="font-semibold text-sm" style={{ color: t.text1 }}>{p.name}</h3>
+                            {p.description && <p className="text-xs mt-0.5 truncate" style={{ color: t.text2 }}>{p.description}</p>}
+                            <p className="font-mono font-bold mt-1" style={{ color: t.accent }}>{parseFloat(p.price).toFixed(2)} €</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {inCart ? (
                               <>
-                                <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full bg-kraft text-ink font-bold">-</button>
-                                <span className="font-mono w-6 text-center">{inCart.qty}</span>
-                                <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full bg-route text-paper font-bold">+</button>
+                                <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>-</button>
+                                <span className="font-mono w-6 text-center" style={{ color: t.text1 }}>{inCart.qty}</span>
+                                <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
                               </>
                             ) : (
-                              <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full bg-route text-paper font-bold text-lg">+</button>
+                              <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full font-bold text-lg" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
                             )}
                           </div>
                         </div>
@@ -439,21 +457,21 @@ export default function CustomerPage() {
                 {menu.products.map(p => {
                   const inCart = cart.find(c => c.id === p.id);
                   return (
-                    <div key={p.id} className="bg-white rounded-xl border border-kraft p-4 flex items-center justify-between gap-3">
+                    <div key={p.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-ink text-sm">{p.name}</h3>
-                        {p.description && <p className="text-xs text-ink/50 truncate">{p.description}</p>}
-                        <p className="font-mono text-route font-bold mt-1">{parseFloat(p.price).toFixed(2)} €</p>
+                        <h3 className="font-semibold text-sm" style={{ color: t.text1 }}>{p.name}</h3>
+                        {p.description && <p className="text-xs truncate" style={{ color: t.text2 }}>{p.description}</p>}
+                        <p className="font-mono font-bold mt-1" style={{ color: t.accent }}>{parseFloat(p.price).toFixed(2)} €</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {inCart ? (
                           <>
-                            <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full bg-kraft text-ink font-bold">-</button>
-                            <span className="font-mono w-6 text-center">{inCart.qty}</span>
-                            <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full bg-route text-paper font-bold">+</button>
+                            <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>-</button>
+                            <span className="font-mono w-6 text-center" style={{ color: t.text1 }}>{inCart.qty}</span>
+                            <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
                           </>
                         ) : (
-                          <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full bg-route text-paper font-bold text-lg">+</button>
+                          <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full font-bold text-lg" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
                         )}
                       </div>
                     </div>
@@ -461,58 +479,60 @@ export default function CustomerPage() {
                 })}
               </div>
             )}
-            {menu.products.length === 0 && <p className="text-center py-12 text-ink/40">Le menu est vide</p>}
+            {menu.products.length === 0 && <p className="text-center py-12" style={{ color: t.text2 }}>Le menu est vide</p>}
           </div>
         )}
 
         {view === 'order' && orderStep === 'checkout' && (
           <div className="space-y-4">
-            <button onClick={() => setOrderStep('menu')} className="text-sm text-route hover:underline">← Retour au menu</button>
+            <button onClick={() => setOrderStep('menu')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
 
-            <div className="bg-white rounded-xl border border-kraft p-5">
-              <h2 className="text-sm font-heading text-ink mb-3">Votre panier</h2>
+            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Votre panier</h2>
               <div className="space-y-2">
                 {cart.map(c => (
                   <div key={c.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => updateQty(c.id, -1)} className="w-7 h-7 rounded-full bg-kraft text-ink text-xs font-bold">-</button>
-                        <span className="font-mono w-6 text-center text-xs">{c.qty}</span>
-                        <button onClick={() => updateQty(c.id, 1)} className="w-7 h-7 rounded-full bg-kraft text-ink text-xs font-bold">+</button>
+                        <button onClick={() => updateQty(c.id, -1)} className="w-7 h-7 rounded-full text-xs font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>-</button>
+                        <span className="font-mono w-6 text-center text-xs" style={{ color: t.text1 }}>{c.qty}</span>
+                        <button onClick={() => updateQty(c.id, 1)} className="w-7 h-7 rounded-full text-xs font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>+</button>
                       </div>
-                      <span className="text-ink">{c.name}</span>
+                      <span style={{ color: t.text1 }}>{c.name}</span>
                     </div>
-                    <span className="font-mono text-ink">{(parseFloat(c.price) * c.qty).toFixed(2)} €</span>
+                    <span className="font-mono" style={{ color: t.text1 }}>{(parseFloat(c.price) * c.qty).toFixed(2)} €</span>
                   </div>
                 ))}
               </div>
-              <div className="border-t border-kraft mt-3 pt-3 space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-ink/50">Sous-total</span><span className="font-mono">{subtotal.toFixed(2)} €</span></div>
-                <div className="flex justify-between"><span className="text-ink/50">Livraison</span><span className="font-mono">{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
+              <div className="mt-3 pt-3 space-y-1 text-sm" style={{ borderTop: `1px solid ${t.border}` }}>
+                <div className="flex justify-between"><span style={{ color: t.text2 }}>Sous-total</span><span className="font-mono" style={{ color: t.text1 }}>{subtotal.toFixed(2)} €</span></div>
+                <div className="flex justify-between"><span style={{ color: t.text2 }}>Livraison</span><span className="font-mono" style={{ color: t.text1 }}>{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
                 {discount > 0 && <div className="flex justify-between text-go"><span>Remise</span><span className="font-mono">-{discount.toFixed(2)} €</span></div>}
-                <div className="flex justify-between font-bold text-ink border-t border-kraft pt-2">
-                  <span>Total</span><span className="font-mono text-route">{total.toFixed(2)} €</span>
+                <div className="flex justify-between font-bold pt-2" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
+                  <span>Total</span><span className="font-mono" style={{ color: t.accent }}>{total.toFixed(2)} €</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-kraft p-5">
-              <h2 className="text-sm font-heading text-ink mb-3">Livraison</h2>
+            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Livraison</h2>
               <div className="space-y-3">
                 <input placeholder="Adresse de livraison *" value={orderForm.deliveryAddress}
                   onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
                 <textarea placeholder="Notes (étage, code...)" value={orderForm.deliveryNotes}
                   onChange={e => setOrderForm({ ...orderForm, deliveryNotes: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" rows={2} />
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} rows={2} />
                 <div>
-                  <p className="text-xs text-ink/50 mb-2">Mode de paiement</p>
+                  <p className="text-xs mb-2" style={{ color: t.text2 }}>Mode de paiement</p>
                   <div className="flex gap-2">
                     {[{ v: 'cash', l: 'Espèces' }, { v: 'card', l: 'Carte' }, { v: 'meal_voucher', l: 'Ticket resto' }].map(m => (
                       <button key={m.v} onClick={() => setOrderForm({ ...orderForm, paymentMethod: m.v })}
-                        className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                          orderForm.paymentMethod === m.v ? 'bg-route text-paper' : 'bg-kraft/50 text-ink hover:bg-kraft'
-                        }`}>
+                        className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
+                        style={orderForm.paymentMethod === m.v
+                          ? { backgroundColor: t.accent, color: '#fff' }
+                          : { backgroundColor: t.bg, color: t.text1 }
+                        }>
                         {m.l}
                       </button>
                     ))}
@@ -521,11 +541,11 @@ export default function CustomerPage() {
                 <div className="flex gap-2">
                   <input placeholder="Code promo" value={orderForm.promoCode}
                     onChange={e => setOrderForm({ ...orderForm, promoCode: e.target.value })}
-                    className="flex-1 px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm font-mono uppercase" />
-                  <button onClick={validatePromo} className="px-4 py-2.5 bg-kraft text-ink rounded-lg text-sm font-semibold">Appliquer</button>
+                    className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none text-sm font-mono uppercase" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  <button onClick={validatePromo} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.border, color: t.text1 }}>Appliquer</button>
                 </div>
                 {promoResult && (
-                  <p className="text-xs text-go">
+                  <p className="text-xs" style={{ color: t.greenText }}>
                     Code appliqué : {promoResult.type === 'percentage' ? `${promoResult.value}%` : promoResult.type === 'fixed' ? `${promoResult.value} €` : 'Livraison gratuite'}
                   </p>
                 )}
@@ -541,18 +561,20 @@ export default function CustomerPage() {
 
         {view === 'order' && orderStep === 'confirmed' && confirmation && (
           <div className="text-center py-12">
-            <div className="bg-white rounded-2xl border border-kraft p-8 max-w-md mx-auto">
+            <div className="rounded-2xl p-8 max-w-md mx-auto" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               <div className="w-16 h-16 rounded-full bg-go/20 flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
-              <h2 className="text-xl font-heading text-ink mb-2">Commande confirmée !</h2>
-              <p className="text-3xl font-mono font-bold text-route mb-4">{confirmation.orderNumber}</p>
-              <p className="text-sm text-ink/50 mb-6">Des points de fidélité ont été ajoutés à votre compte !</p>
+              <h2 className="text-xl font-heading mb-2" style={{ color: t.text1 }}>Commande confirmée !</h2>
+              <p className="text-3xl font-mono font-bold mb-4" style={{ color: t.accent }}>{confirmation.orderNumber}</p>
+              <p className="text-sm mb-6" style={{ color: t.text2 }}>Des points de fidélité ont été ajoutés à votre compte !</p>
               <div className="flex gap-3">
                 <a href={`/suivi/${confirmation.orderNumber}`}
-                  className="flex-1 py-3 bg-route text-paper rounded-lg font-semibold text-sm text-center no-underline">
+                  className="flex-1 py-3 rounded-lg font-semibold text-sm text-center no-underline"
+                  style={{ backgroundColor: t.accent, color: '#fff' }}>
                   Suivre
                 </a>
                 <button onClick={() => { setView('home'); setOrderStep('menu'); setConfirmation(null); setPromoResult(null); setOrderForm({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '' }); }}
-                  className="flex-1 py-3 bg-kraft text-ink rounded-lg font-semibold text-sm">
+                  className="flex-1 py-3 rounded-lg font-semibold text-sm"
+                  style={{ backgroundColor: t.border, color: t.text1 }}>
                   Accueil
                 </button>
               </div>

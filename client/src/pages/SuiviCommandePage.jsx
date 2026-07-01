@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import FoodlyLogo from '../components/FoodlyLogo';
+import { useTheme } from '../ThemeContext';
 
 const STEPS = [
   { key: 'received', label: 'Commande reçue', statuses: ['pending', 'confirmed'] },
@@ -11,6 +12,7 @@ const STEPS = [
 
 export default function SuiviCommandePage() {
   const { orderNumber: paramOrder } = useParams();
+  const { t } = useTheme();
   const [search, setSearch] = useState(paramOrder || '');
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
@@ -41,13 +43,13 @@ export default function SuiviCommandePage() {
   const isProblem = order?.status === 'problem';
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="bg-white border-b border-[rgba(0,0,0,0.06)]">
+    <div style={{ backgroundColor: t.bg, minHeight: '100vh' }}>
+      <header style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2.5">
           <FoodlyLogo size={28} />
           <div>
-            <h1 className="text-lg font-bold text-ink tracking-[-0.5px]">Suivi de commande</h1>
-            <p className="text-[10px] font-medium uppercase tracking-[2.5px] text-route">Foodly</p>
+            <h1 className="text-lg font-bold tracking-[-0.5px]" style={{ color: t.text1 }}>Suivi de commande</h1>
+            <p className="text-[10px] font-medium uppercase tracking-[2.5px]" style={{ color: t.accent }}>Foodly</p>
           </div>
         </div>
       </header>
@@ -59,12 +61,14 @@ export default function SuiviCommandePage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchOrder()}
-            className="flex-1 px-4 py-3 border border-kraft rounded-lg bg-white text-sm font-mono uppercase focus:outline-none focus:border-route"
+            className="flex-1 px-4 py-3 rounded-lg text-sm font-mono uppercase focus:outline-none"
+            style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }}
           />
           <button
             onClick={() => fetchOrder()}
             disabled={loading}
-            className="px-6 py-3 bg-route text-paper rounded-lg text-sm font-semibold hover:bg-route/90 disabled:opacity-50"
+            className="px-6 py-3 rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
           >
             {loading ? '...' : 'Suivre'}
           </button>
@@ -74,7 +78,7 @@ export default function SuiviCommandePage() {
 
         {order && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-kraft p-6">
+            <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               {isCancelled ? (
                 <div className="text-center py-4">
                   <div className="w-14 h-14 rounded-full bg-stop/20 flex items-center justify-center text-2xl mx-auto mb-3">✕</div>
@@ -84,7 +88,7 @@ export default function SuiviCommandePage() {
                 <div className="text-center py-4">
                   <div className="w-14 h-14 rounded-full bg-stop/20 flex items-center justify-center text-2xl mx-auto mb-3">!</div>
                   <p className="font-heading text-stop text-lg">Problème signalé</p>
-                  <p className="text-sm text-ink/50 mt-1">Contactez le restaurant</p>
+                  <p className="text-sm mt-1" style={{ color: t.text2 }}>Contactez le restaurant</p>
                 </div>
               ) : (
                 <>
@@ -95,14 +99,19 @@ export default function SuiviCommandePage() {
                       return (
                         <div key={step.key} className="flex-1 flex flex-col items-center relative">
                           {i > 0 && (
-                            <div className={`absolute top-4 right-1/2 w-full h-0.5 -z-10 ${done || active ? 'bg-go' : 'bg-kraft'}`} />
+                            <div className={`absolute top-4 right-1/2 w-full h-0.5 -z-10 ${done || active ? 'bg-go' : ''}`}
+                              style={!(done || active) ? { backgroundColor: t.text3 } : undefined} />
                           )}
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 ${
-                            done ? 'bg-go text-paper' : active ? 'bg-route text-paper animate-pulse' : 'bg-kraft text-ink/30'
-                          }`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 ${done ? 'bg-go text-paper' : active ? 'animate-pulse' : ''}`}
+                            style={active
+                              ? { backgroundColor: t.accent, color: '#fff' }
+                              : !done
+                                ? { backgroundColor: t.text3, color: t.bg }
+                                : undefined
+                            }>
                             {done ? '✓' : i + 1}
                           </div>
-                          <p className={`text-xs mt-2 text-center ${done || active ? 'text-ink font-semibold' : 'text-ink/30'}`}>
+                          <p className="text-xs mt-2 text-center" style={{ color: done || active ? t.text1 : t.text3, fontWeight: done || active ? 600 : 400 }}>
                             {step.label}
                           </p>
                         </div>
@@ -112,7 +121,7 @@ export default function SuiviCommandePage() {
 
                   {isDelivered && (
                     <div className="text-center mt-6">
-                      <div className="w-14 h-14 rounded-full bg-go/20 flex items-center justify-center text-2xl mx-auto mb-2">✓</div>
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-2" style={{ backgroundColor: t.greenBg }}>✓</div>
                       <p className="font-heading text-go text-lg">Livrée !</p>
                     </div>
                   )}
@@ -120,33 +129,33 @@ export default function SuiviCommandePage() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-kraft p-5">
+            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-mono text-route font-bold text-lg">{order.order_number}</span>
-                <span className="text-xs text-ink/40">{new Date(order.created_at).toLocaleString('fr-FR')}</span>
+                <span className="font-mono font-bold text-lg" style={{ color: t.accent }}>{order.order_number}</span>
+                <span className="text-xs" style={{ color: t.text2 }}>{new Date(order.created_at).toLocaleString('fr-FR')}</span>
               </div>
               <div className="text-sm space-y-1">
-                <p><span className="text-ink/40">Client :</span> {order.customer_name}</p>
-                <p><span className="text-ink/40">Adresse :</span> {order.delivery_address}</p>
+                <p style={{ color: t.text1 }}><span style={{ color: t.text2 }}>Client :</span> {order.customer_name}</p>
+                <p style={{ color: t.text1 }}><span style={{ color: t.text2 }}>Adresse :</span> {order.delivery_address}</p>
                 {order.driver_first_name && (
-                  <p><span className="text-ink/40">Livreur :</span> {order.driver_first_name} {order.driver_last_name}</p>
+                  <p style={{ color: t.text1 }}><span style={{ color: t.text2 }}>Livreur :</span> {order.driver_first_name} {order.driver_last_name}</p>
                 )}
               </div>
 
               {order.items && order.items.length > 0 && (
-                <div className="border-t border-kraft mt-3 pt-3">
+                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
                   {order.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm py-1">
-                      <span>{item.quantity}× {item.product_name}</span>
-                      <span className="font-mono text-ink/60">{parseFloat(item.total_price || item.unit_price * item.quantity).toFixed(2)} €</span>
+                      <span style={{ color: t.text1 }}>{item.quantity}× {item.product_name}</span>
+                      <span className="font-mono" style={{ color: t.text2 }}>{parseFloat(item.total_price || item.unit_price * item.quantity).toFixed(2)} €</span>
                     </div>
                   ))}
-                  <div className="border-t border-kraft mt-2 pt-2 space-y-1 text-sm">
-                    <div className="flex justify-between text-ink/50">
+                  <div className="mt-2 pt-2 space-y-1 text-sm" style={{ borderTop: `1px solid ${t.border}` }}>
+                    <div className="flex justify-between" style={{ color: t.text2 }}>
                       <span>Sous-total</span>
                       <span className="font-mono">{parseFloat(order.subtotal).toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between text-ink/50">
+                    <div className="flex justify-between" style={{ color: t.text2 }}>
                       <span>Livraison</span>
                       <span className="font-mono">{parseFloat(order.delivery_fee).toFixed(2)} €</span>
                     </div>
@@ -156,21 +165,21 @@ export default function SuiviCommandePage() {
                         <span className="font-mono">-{parseFloat(order.discount_amount).toFixed(2)} €</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold border-t border-kraft pt-1">
+                    <div className="flex justify-between font-bold pt-1" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
                       <span>Total</span>
-                      <span className="font-mono text-route">{parseFloat(order.total).toFixed(2)} €</span>
+                      <span className="font-mono" style={{ color: t.accent }}>{parseFloat(order.total).toFixed(2)} €</span>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <p className="text-center text-xs text-ink/30">Mise à jour automatique toutes les 15 secondes</p>
+            <p className="text-center text-xs" style={{ color: t.text3 }}>Mise à jour automatique toutes les 15 secondes</p>
           </div>
         )}
 
         {!order && !error && !loading && (
-          <div className="text-center py-12 text-ink/30">
+          <div className="text-center py-12" style={{ color: t.text3 }}>
             <p className="text-lg mb-2">Entrez votre numéro de commande</p>
             <p className="text-sm">Format : CMD-XXXX</p>
           </div>

@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { io } from 'socket.io-client';
 import { api } from '../utils/api';
 import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../ThemeContext';
 import 'leaflet/dist/leaflet.css';
 
 const myIcon = new L.DivIcon({
@@ -47,6 +48,7 @@ export default function LivreurPage() {
   const [gpsActive, setGpsActive] = useState(false);
   const [connected, setConnected] = useState(false);
   const { token, user } = useAuthStore();
+  const { t } = useTheme();
   const socketRef = useRef(null);
   const watchRef = useRef(null);
 
@@ -120,9 +122,15 @@ export default function LivreurPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-heading text-ink">Ma tournée</h1>
+        <h1 className="text-2xl font-heading" style={{ color: t.text1 }}>Ma tournée</h1>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-go/20 text-go' : 'bg-stop/20 text-stop'}`}>
+          <span
+            className="text-xs px-2 py-1 rounded-full"
+            style={connected
+              ? { backgroundColor: t.greenBg, color: t.greenText }
+              : { backgroundColor: t.orangeBg, color: t.orangeText }
+            }
+          >
             {connected ? '● Connecté' : '○ Déconnecté'}
           </span>
           <button
@@ -134,7 +142,7 @@ export default function LivreurPage() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg h-56 sm:h-72 md:h-[350px]">
+      <div className="rounded-xl overflow-hidden shadow-lg h-56 sm:h-72 md:h-[350px]" style={{ border: `1px solid ${t.border}` }}>
         <MapContainer
           center={myPos ? [myPos.lat, myPos.lng] : [48.8566, 2.3522]}
           zoom={13}
@@ -169,54 +177,61 @@ export default function LivreurPage() {
         </MapContainer>
       </div>
 
-      <div className="bg-white rounded-xl border border-kraft p-5">
-        <h2 className="text-sm font-heading text-ink mb-3">Ma caisse du jour</h2>
+      <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+        <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Ma caisse du jour</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-paper rounded-lg p-3 text-center">
-            <p className="text-xs text-ink/40">Espèces</p>
-            <p className="font-mono text-lg font-bold text-ink">{cashTotal.toFixed(2)} €</p>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: t.bg }}>
+            <p className="text-xs" style={{ color: t.text2 }}>Espèces</p>
+            <p className="font-mono text-lg font-bold" style={{ color: t.text1 }}>{cashTotal.toFixed(2)} €</p>
           </div>
-          <div className="bg-paper rounded-lg p-3 text-center">
-            <p className="text-xs text-ink/40">Carte</p>
-            <p className="font-mono text-lg font-bold text-ink">{cardTotal.toFixed(2)} €</p>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: t.bg }}>
+            <p className="text-xs" style={{ color: t.text2 }}>Carte</p>
+            <p className="font-mono text-lg font-bold" style={{ color: t.text1 }}>{cardTotal.toFixed(2)} €</p>
           </div>
-          <div className="bg-paper rounded-lg p-3 text-center">
-            <p className="text-xs text-ink/40">Ticket resto</p>
-            <p className="font-mono text-lg font-bold text-ink">{voucherTotal.toFixed(2)} €</p>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: t.bg }}>
+            <p className="text-xs" style={{ color: t.text2 }}>Ticket resto</p>
+            <p className="font-mono text-lg font-bold" style={{ color: t.text1 }}>{voucherTotal.toFixed(2)} €</p>
           </div>
-          <div className="bg-route/10 rounded-lg p-3 text-center">
-            <p className="text-xs text-route">Total</p>
-            <p className="font-mono text-lg font-bold text-route">{grandTotal.toFixed(2)} €</p>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: t.accentBg }}>
+            <p className="text-xs" style={{ color: t.accent }}>Total</p>
+            <p className="font-mono text-lg font-bold" style={{ color: t.accent }}>{grandTotal.toFixed(2)} €</p>
           </div>
         </div>
-        <p className="text-xs text-ink/40 mt-2">{deliveredToday.length} livraison(s) effectuée(s) aujourd'hui</p>
+        <p className="text-xs mt-2" style={{ color: t.text2 }}>{deliveredToday.length} livraison(s) effectuée(s) aujourd'hui</p>
       </div>
 
       <div>
-        <h2 className="text-sm font-heading text-ink mb-3">
+        <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>
           Feuille de route ({activeOrders.length} arrêt{activeOrders.length !== 1 ? 's' : ''})
         </h2>
         <div className="space-y-3">
           {activeOrders.map((o, i) => {
             const action = nextAction(o.status);
             return (
-              <div key={o.id} className="bg-white rounded-xl border border-kraft p-4">
+              <div key={o.id} className="rounded-xl p-4" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-route flex items-center justify-center text-paper font-bold text-sm flex-shrink-0 mt-0.5">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5"
+                    style={{ backgroundColor: t.accent, color: '#fff' }}
+                  >
                     {o.stop_order || i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="font-mono text-route font-bold text-sm">{o.order_number}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        o.status === 'in_delivery' ? 'bg-go/20 text-go' : 'bg-kraft text-ink/60'
-                      }`}>{statusLabels[o.status]}</span>
+                      <span className="font-mono font-bold text-sm" style={{ color: t.accent }}>{o.order_number}</span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full"
+                        style={o.status === 'in_delivery'
+                          ? { backgroundColor: t.greenBg, color: t.greenText }
+                          : { backgroundColor: t.tabBg, color: t.text2 }
+                        }
+                      >{statusLabels[o.status]}</span>
                     </div>
-                    <p className="font-semibold text-ink text-sm mt-1">{o.customer_name}</p>
-                    <p className="text-xs text-ink/50">{o.delivery_address}</p>
-                    {o.customer_phone && <p className="text-xs text-ink/40 mt-0.5">{o.customer_phone}</p>}
+                    <p className="font-semibold text-sm mt-1" style={{ color: t.text1 }}>{o.customer_name}</p>
+                    <p className="text-xs" style={{ color: t.text2 }}>{o.delivery_address}</p>
+                    {o.customer_phone && <p className="text-xs mt-0.5" style={{ color: t.text2 }}>{o.customer_phone}</p>}
                     <div className="flex items-center justify-between mt-3">
-                      <span className="font-mono text-sm text-ink">
+                      <span className="font-mono text-sm" style={{ color: t.text1 }}>
                         {parseFloat(o.total || 0).toFixed(2)} € · {
                           o.payment_method === 'cash' ? 'Espèces' :
                           o.payment_method === 'card' ? 'Carte' : 'Ticket resto'
@@ -226,8 +241,9 @@ export default function LivreurPage() {
                         <button
                           onClick={() => updateStatus(o.id, action.next)}
                           className={`px-4 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-xs font-semibold ${
-                            action.next === 'delivered' ? 'bg-go text-paper' : 'bg-route text-paper'
+                            action.next === 'delivered' ? 'bg-go text-paper' : ''
                           }`}
+                          style={action.next !== 'delivered' ? { backgroundColor: t.accent, color: '#fff' } : undefined}
                         >
                           {action.label}
                         </button>
@@ -239,7 +255,7 @@ export default function LivreurPage() {
             );
           })}
           {activeOrders.length === 0 && (
-            <p className="text-center py-8 text-ink/40">Aucune livraison en cours</p>
+            <p className="text-center py-8" style={{ color: t.text2 }}>Aucune livraison en cours</p>
           )}
         </div>
       </div>

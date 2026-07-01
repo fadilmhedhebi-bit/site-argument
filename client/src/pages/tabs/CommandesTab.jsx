@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
+import { useTheme } from '../../ThemeContext';
 
-const statusColors = {
-  pending: 'bg-kraft text-ink', confirmed: 'bg-route/20 text-route', preparing: 'bg-route/30 text-route',
-  ready: 'bg-go/20 text-go', in_delivery: 'bg-go/30 text-go', delivered: 'bg-go text-paper',
-  cancelled: 'bg-stop/20 text-stop', problem: 'bg-stop/20 text-stop',
-};
+function useStatusStyles() {
+  const { t } = useTheme();
+  return {
+    pending: { backgroundColor: t.tabBg, color: t.text2 },
+    confirmed: { backgroundColor: t.blueBg, color: t.blueText },
+    preparing: { backgroundColor: t.blueBg, color: t.blueText },
+    ready: { backgroundColor: t.greenBg, color: t.greenText },
+    in_delivery: { backgroundColor: t.greenBg, color: t.greenText },
+    delivered: { backgroundColor: t.greenText, color: '#fff' },
+    cancelled: { backgroundColor: t.orangeBg, color: t.orangeText },
+    problem: { backgroundColor: t.orangeBg, color: t.orangeText },
+  };
+}
 const statusLabels = {
   pending: 'En attente', confirmed: 'Confirmée', preparing: 'En prépa.', ready: 'Prête',
   in_delivery: 'En livraison', delivered: 'Livrée', cancelled: 'Annulée', problem: 'Problème',
@@ -19,6 +28,8 @@ export default function CommandesTab() {
   const [filter, setFilter] = useState('active');
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const { t } = useTheme();
+  const statusStyles = useStatusStyles();
 
   const loadOrders = () => {
     api.get('/orders?limit=200').then(setOrders).catch(console.error);
@@ -89,9 +100,11 @@ export default function CommandesTab() {
             { id: 'cancelled', label: 'Annulées' },
           ].map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                filter === f.id ? 'bg-route text-paper' : 'bg-kraft/50 text-ink hover:bg-kraft'
-              }`}>
+              className="px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors"
+              style={{
+                backgroundColor: filter === f.id ? t.accent : t.tabBg,
+                color: filter === f.id ? '#fff' : t.text2,
+              }}>
               {f.label}
             </button>
           ))}
@@ -109,35 +122,39 @@ export default function CommandesTab() {
           )}
           {filtered.map(o => (
             <div key={o.id} onClick={() => loadDetail(o.id)}
-              className={`bg-white rounded-xl border p-4 cursor-pointer transition-colors hover:border-route ${
-                detail?.id === o.id ? 'border-route shadow-sm' : 'border-kraft'
-              }`}>
+              className="rounded-xl p-4 cursor-pointer transition-colors"
+              style={{
+                backgroundColor: t.cardBg,
+                border: `1px solid ${detail?.id === o.id ? t.accent : t.border}`,
+                boxShadow: detail?.id === o.id ? '0 1px 3px rgba(0,0,0,.06)' : 'none',
+              }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm text-route font-bold">{o.order_number}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColors[o.status]}`}>
+                  <span className="font-mono text-sm font-bold" style={{ color: t.accent }}>{o.order_number}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={statusStyles[o.status]}>
                     {statusLabels[o.status]}
                   </span>
                 </div>
-                <span className="font-mono text-sm font-bold text-ink">{parseFloat(o.total).toFixed(2)} €</span>
+                <span className="font-mono text-sm font-bold" style={{ color: t.text1 }}>{parseFloat(o.total).toFixed(2)} €</span>
               </div>
-              <div className="flex items-center justify-between text-xs text-ink/50">
+              <div className="flex items-center justify-between text-xs" style={{ color: t.text2 }}>
                 <span>{o.customer_name} — {o.customer_phone}</span>
                 <span>{new Date(o.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               {o.delivery_address && (
-                <p className="text-xs text-ink/40 mt-1 truncate">{o.delivery_address}</p>
+                <p className="text-xs mt-1 truncate" style={{ color: t.text3 }}>{o.delivery_address}</p>
               )}
               <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   {o.driver_first_name ? (
-                    <span className="text-xs bg-route/10 text-route px-2 py-1 rounded-full">
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: t.accentBg, color: t.accent }}>
                       {o.driver_first_name} {o.driver_last_name}
                     </span>
                   ) : (
                     <select onClick={e => e.stopPropagation()}
                       onChange={e => { if (e.target.value) assignDriver(o.id, e.target.value); }}
-                      value="" className="text-xs bg-kraft/50 text-ink rounded-lg px-2 py-2 border-none">
+                      value="" className="text-xs rounded-lg px-2 py-2 border-none"
+                      style={{ backgroundColor: t.tabBg, color: t.text1 }}>
                       <option value="">Assigner livreur</option>
                       {drivers.filter(d => d.isActive).map(d => (
                         <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
@@ -148,19 +165,22 @@ export default function CommandesTab() {
                 <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
                   {nextStatus(o.status) && (
                     <button onClick={() => updateStatus(o.id, nextStatus(o.status))}
-                      className="text-xs px-3 py-1.5 bg-go/20 text-go rounded-lg font-semibold hover:bg-go/30">
+                      className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                      style={{ backgroundColor: t.greenBg, color: t.greenText }}>
                       {statusLabels[nextStatus(o.status)]}
                     </button>
                   )}
                   {!['delivered', 'cancelled'].includes(o.status) && (
                     <button onClick={() => updateStatus(o.id, 'cancelled')}
-                      className="text-xs px-3 py-1.5 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
+                      className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                      style={{ backgroundColor: t.orangeBg, color: t.orangeText }}>
                       Annuler
                     </button>
                   )}
                   {o.status === 'pending' && (
                     <button onClick={() => deleteOrder(o.id)}
-                      className="text-xs px-3 py-1.5 bg-stop/10 text-stop rounded-lg font-semibold hover:bg-stop/20">
+                      className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                      style={{ backgroundColor: t.orangeBg, color: t.orangeText }}>
                       Suppr.
                     </button>
                   )}
@@ -171,56 +191,57 @@ export default function CommandesTab() {
         </div>
 
         {detail && (
-          <div className="fixed inset-0 bg-ink/40 z-40 lg:static lg:bg-transparent lg:col-span-1" onClick={() => setDetail(null)}>
-            <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white p-5 overflow-y-auto lg:static lg:max-w-none lg:rounded-xl lg:border lg:border-kraft lg:sticky lg:top-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-40 lg:static lg:bg-transparent lg:col-span-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => setDetail(null)}>
+            <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm p-5 overflow-y-auto lg:static lg:max-w-none lg:rounded-xl lg:sticky lg:top-4"
+              style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }} onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-mono text-route font-bold">{detail.order_number}</h3>
-                <button onClick={() => setDetail(null)} className="text-ink/30 hover:text-ink text-2xl p-1">&times;</button>
+                <h3 className="font-mono font-bold" style={{ color: t.accent }}>{detail.order_number}</h3>
+                <button onClick={() => setDetail(null)} className="text-2xl p-1" style={{ color: t.text3 }}>&times;</button>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[detail.status]}`}>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={statusStyles[detail.status]}>
                 {statusLabels[detail.status]}
               </span>
 
               <div className="mt-4 space-y-3">
                 <div>
-                  <p className="text-[10px] text-ink/40 uppercase tracking-wide">Client</p>
-                  <p className="text-sm text-ink font-semibold">{detail.customer_name}</p>
-                  <p className="text-xs text-ink/60">{detail.customer_phone}</p>
-                  {detail.customer_email && <p className="text-xs text-ink/60">{detail.customer_email}</p>}
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: t.text3 }}>Client</p>
+                  <p className="text-sm font-semibold" style={{ color: t.text1 }}>{detail.customer_name}</p>
+                  <p className="text-xs" style={{ color: t.text2 }}>{detail.customer_phone}</p>
+                  {detail.customer_email && <p className="text-xs" style={{ color: t.text2 }}>{detail.customer_email}</p>}
                 </div>
                 <div>
-                  <p className="text-[10px] text-ink/40 uppercase tracking-wide">Adresse</p>
-                  <p className="text-xs text-ink/60">{detail.delivery_address}</p>
-                  {detail.delivery_notes && <p className="text-xs text-ink/40 italic mt-0.5">{detail.delivery_notes}</p>}
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: t.text3 }}>Adresse</p>
+                  <p className="text-xs" style={{ color: t.text2 }}>{detail.delivery_address}</p>
+                  {detail.delivery_notes && <p className="text-xs italic mt-0.5" style={{ color: t.text3 }}>{detail.delivery_notes}</p>}
                 </div>
                 <div>
-                  <p className="text-[10px] text-ink/40 uppercase tracking-wide mb-1">Articles</p>
+                  <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: t.text3 }}>Articles</p>
                   {detail.items?.map((it, i) => (
-                    <div key={i} className="flex justify-between text-xs text-ink py-0.5">
+                    <div key={i} className="flex justify-between text-xs py-0.5" style={{ color: t.text1 }}>
                       <span>{it.quantity}x {it.product_name}</span>
                       <span className="font-mono">{parseFloat(it.total_price).toFixed(2)} €</span>
                     </div>
                   ))}
-                  <div className="border-t border-kraft mt-2 pt-2 space-y-0.5 text-xs">
-                    <div className="flex justify-between text-ink/50">
+                  <div className="mt-2 pt-2 space-y-0.5 text-xs" style={{ borderTop: `1px solid ${t.border}` }}>
+                    <div className="flex justify-between" style={{ color: t.text2 }}>
                       <span>Sous-total</span><span className="font-mono">{parseFloat(detail.subtotal).toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between text-ink/50">
+                    <div className="flex justify-between" style={{ color: t.text2 }}>
                       <span>Livraison</span><span className="font-mono">{parseFloat(detail.delivery_fee).toFixed(2)} €</span>
                     </div>
                     {parseFloat(detail.discount_amount) > 0 && (
-                      <div className="flex justify-between text-go">
+                      <div className="flex justify-between" style={{ color: t.greenText }}>
                         <span>Remise</span><span className="font-mono">-{parseFloat(detail.discount_amount).toFixed(2)} €</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-ink border-t border-kraft pt-1">
-                      <span>Total</span><span className="font-mono text-route">{parseFloat(detail.total).toFixed(2)} €</span>
+                    <div className="flex justify-between font-bold pt-1" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
+                      <span>Total</span><span className="font-mono" style={{ color: t.accent }}>{parseFloat(detail.total).toFixed(2)} €</span>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] text-ink/40 uppercase tracking-wide">Paiement</p>
-                  <p className="text-xs text-ink/60">
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: t.text3 }}>Paiement</p>
+                  <p className="text-xs" style={{ color: t.text2 }}>
                     {{ cash: 'Espèces', card: 'Carte', meal_voucher: 'Ticket resto' }[detail.payment_method] || detail.payment_method}
                     {' — '}
                     {{ pending: 'En attente', paid: 'Payé', refunded: 'Remboursé' }[detail.payment_status] || detail.payment_status}
@@ -228,15 +249,15 @@ export default function CommandesTab() {
                 </div>
                 {detail.history?.length > 0 && (
                   <div>
-                    <p className="text-[10px] text-ink/40 uppercase tracking-wide mb-1">Historique</p>
+                    <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: t.text3 }}>Historique</p>
                     <div className="space-y-1">
                       {detail.history.map((h, i) => (
                         <div key={i} className="flex items-center gap-2 text-[11px]">
-                          <span className={`px-1.5 py-0.5 rounded ${statusColors[h.status]}`}>{statusLabels[h.status]}</span>
-                          <span className="text-ink/40">
+                          <span className="px-1.5 py-0.5 rounded" style={statusStyles[h.status]}>{statusLabels[h.status]}</span>
+                          <span style={{ color: t.text3 }}>
                             {new Date(h.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          {h.first_name && <span className="text-ink/40">par {h.first_name}</span>}
+                          {h.first_name && <span style={{ color: t.text3 }}>par {h.first_name}</span>}
                         </div>
                       ))}
                     </div>

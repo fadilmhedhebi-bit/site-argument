@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 import { api } from '../../utils/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationStore } from '../../stores/notificationStore';
+import { useTheme } from '../../ThemeContext';
 import 'leaflet/dist/leaflet.css';
 
 const driverIcon = new L.DivIcon({
@@ -25,17 +26,33 @@ function FitBounds({ positions }) {
   return null;
 }
 
-const statusColors = {
-  pending: 'bg-kraft text-ink', confirmed: 'bg-route/20 text-route', preparing: 'bg-route/30 text-route',
-  ready: 'bg-go/20 text-go', in_delivery: 'bg-go/30 text-go', delivered: 'bg-go text-paper',
-  cancelled: 'bg-stop/20 text-stop', problem: 'bg-stop/20 text-stop',
-};
 const statusLabels = {
   pending: 'En attente', confirmed: 'Confirmée', preparing: 'En prépa.', ready: 'Prête',
   in_delivery: 'En livraison', delivered: 'Livrée', cancelled: 'Annulée', problem: 'Problème',
 };
 
+function getStatusStyle(status, t) {
+  switch (status) {
+    case 'pending':
+      return { backgroundColor: t.tabBg, color: t.text2 };
+    case 'confirmed':
+    case 'preparing':
+      return { backgroundColor: t.blueBg, color: t.blueText };
+    case 'ready':
+    case 'in_delivery':
+      return { backgroundColor: t.greenBg, color: t.greenText };
+    case 'delivered':
+      return { backgroundColor: t.greenText, color: '#fff' };
+    case 'cancelled':
+    case 'problem':
+      return { backgroundColor: t.orangeBg, color: t.orangeText };
+    default:
+      return { backgroundColor: t.tabBg, color: t.text2 };
+  }
+}
+
 export default function TourneesTab() {
+  const { t } = useTheme();
   const [tours, setTours] = useState([]);
   const [orders, setOrders] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -53,7 +70,7 @@ export default function TourneesTab() {
       api.get('/tours'),
       api.get('/orders?limit=200'),
       api.get('/auth/drivers'),
-    ]).then(([t, o, d]) => { setTours(t); setOrders(o); setDrivers(d); }).catch(console.error);
+    ]).then(([tr, o, d]) => { setTours(tr); setOrders(o); setDrivers(d); }).catch(console.error);
   };
 
   useEffect(loadData, []);
@@ -141,22 +158,26 @@ export default function TourneesTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-go/20 text-go' : 'bg-stop/20 text-stop'}`}>
+        <span className="text-xs px-2 py-1 rounded-full"
+          style={connected ? { backgroundColor: t.greenBg, color: t.greenText } : { backgroundColor: t.orangeBg, color: t.orangeText }}>
           {connected ? '● Connecté' : '○ Déconnecté'}
         </span>
         <div className="flex gap-2">
           {selected.length > 0 && (
-            <button onClick={() => setShowCreate(true)} className="px-4 py-2 bg-route text-paper rounded-lg text-sm font-semibold hover:bg-route/90">
+            <button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-lg text-sm font-semibold"
+              style={{ backgroundColor: t.accent, color: '#fff' }}>
               Créer tournée ({selected.length})
             </button>
           )}
-          <button onClick={closeDay} className="px-4 py-2 bg-ink text-paper rounded-lg text-sm font-semibold hover:bg-ink/80">
+          <button onClick={closeDay} className="px-4 py-2 rounded-lg text-sm font-semibold"
+            style={{ backgroundColor: t.text1, color: t.cardBg }}>
             Clôturer la journée
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-kraft shadow-lg h-56 sm:h-72 md:h-[400px]">
+      <div className="rounded-xl overflow-hidden shadow-lg h-56 sm:h-72 md:h-[400px]"
+        style={{ border: `1px solid ${t.border}` }}>
         <MapContainer center={[48.8566, 2.3522]} zoom={12} style={{ height: '100%', width: '100%' }}>
           <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           {allPositions.length > 0 && <FitBounds positions={allPositions} />}
@@ -173,27 +194,32 @@ export default function TourneesTab() {
         </MapContainer>
       </div>
 
-      {tours.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length > 0 && (
+      {tours.filter(tr => tr.status !== 'completed' && tr.status !== 'cancelled').length > 0 && (
         <div>
-          <h3 className="text-sm font-heading text-ink mb-3">Tournées actives</h3>
+          <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Tournées actives</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {tours.filter(t => t.status !== 'completed' && t.status !== 'cancelled').map(t => (
-              <div key={t.id} className="bg-white rounded-xl border border-kraft p-4">
+            {tours.filter(tr => tr.status !== 'completed' && tr.status !== 'cancelled').map(tr => (
+              <div key={tr.id} className="rounded-xl p-4"
+                style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-ink text-sm">{t.name}</h4>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${t.status === 'in_progress' ? 'bg-go/20 text-go' : 'bg-kraft text-ink/60'}`}>
-                    {t.status === 'planned' ? 'Planifiée' : t.status === 'in_progress' ? 'En cours' : t.status}
+                  <h4 className="font-semibold text-sm" style={{ color: t.text1 }}>{tr.name}</h4>
+                  <span className="text-xs px-2 py-0.5 rounded-full"
+                    style={tr.status === 'in_progress' ? { backgroundColor: t.greenBg, color: t.greenText } : { backgroundColor: t.tabBg, color: t.text2 }}>
+                    {tr.status === 'planned' ? 'Planifiée' : tr.status === 'in_progress' ? 'En cours' : tr.status}
                   </span>
                 </div>
-                <p className="text-xs text-ink/50">{t.driver_first_name} {t.driver_last_name} — {t.order_count} arrêts</p>
+                <p className="text-xs" style={{ color: t.text2 }}>{tr.driver_first_name} {tr.driver_last_name} — {tr.order_count} arrêts</p>
                 <div className="flex gap-2 mt-3">
-                  {t.status === 'planned' && (
-                    <button onClick={() => updateTourStatus(t.id, 'in_progress')} className="text-xs px-3 py-1.5 bg-go text-paper rounded-lg font-semibold">Démarrer</button>
+                  {tr.status === 'planned' && (
+                    <button onClick={() => updateTourStatus(tr.id, 'in_progress')} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                      style={{ backgroundColor: t.greenText, color: '#fff' }}>Démarrer</button>
                   )}
-                  {t.status === 'in_progress' && (
-                    <button onClick={() => updateTourStatus(t.id, 'completed')} className="text-xs px-3 py-1.5 bg-ink text-paper rounded-lg font-semibold">Terminer</button>
+                  {tr.status === 'in_progress' && (
+                    <button onClick={() => updateTourStatus(tr.id, 'completed')} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                      style={{ backgroundColor: t.text1, color: t.cardBg }}>Terminer</button>
                   )}
-                  <button onClick={() => optimizeTour(t.id)} className="text-xs px-3 py-1.5 bg-route/10 text-route rounded-lg font-semibold">Optimiser</button>
+                  <button onClick={() => optimizeTour(tr.id)} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                    style={{ backgroundColor: t.accentBg, color: t.accent }}>Optimiser</button>
                 </div>
               </div>
             ))}
@@ -202,51 +228,58 @@ export default function TourneesTab() {
       )}
 
       <div>
-        <h3 className="text-sm font-heading text-ink mb-3">Commandes par livreur</h3>
+        <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Commandes par livreur</h3>
         <div className="flex flex-col sm:flex-row gap-4 sm:overflow-x-auto pb-4">
-          <div className="w-full sm:flex-shrink-0 sm:w-72 bg-kraft/30 rounded-xl p-3">
-            <h4 className="font-semibold text-ink text-sm mb-3 flex items-center justify-between">
-              Non assignées <span className="text-xs bg-kraft px-2 py-0.5 rounded-full">{unassigned.length}</span>
+          <div className="w-full sm:flex-shrink-0 sm:w-72 rounded-xl p-3" style={{ backgroundColor: t.tabBg }}>
+            <h4 className="font-semibold text-sm mb-3 flex items-center justify-between" style={{ color: t.text1 }}>
+              Non assignées <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: t.tabBg, color: t.text2 }}>{unassigned.length}</span>
             </h4>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {unassigned.map(o => (
                 <div key={o.id} onClick={() => toggleSelect(o.id)}
-                  className={`bg-white rounded-lg p-3 border cursor-pointer transition-colors ${selected.includes(o.id) ? 'border-route shadow-sm' : 'border-kraft/50 hover:border-kraft'}`}>
+                  className="rounded-lg p-3 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: t.cardBg,
+                    border: selected.includes(o.id) ? `1px solid ${t.accent}` : `1px solid ${t.border}`,
+                    boxShadow: selected.includes(o.id) ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  }}>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-route font-bold">{o.order_number}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusColors[o.status]}`}>{statusLabels[o.status]}</span>
+                    <span className="font-mono text-xs font-bold" style={{ color: t.accent }}>{o.order_number}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={getStatusStyle(o.status, t)}>{statusLabels[o.status]}</span>
                   </div>
-                  <p className="text-sm text-ink mt-1">{o.customer_name}</p>
-                  <p className="text-xs text-ink/40 truncate">{o.delivery_address}</p>
-                  {selected.includes(o.id) && <span className="text-xs text-route font-semibold mt-1 block">✓ Sélectionnée</span>}
+                  <p className="text-sm mt-1" style={{ color: t.text1 }}>{o.customer_name}</p>
+                  <p className="text-xs truncate" style={{ color: t.text2 }}>{o.delivery_address}</p>
+                  {selected.includes(o.id) && <span className="text-xs font-semibold mt-1 block" style={{ color: t.accent }}>✓ Sélectionnée</span>}
                 </div>
               ))}
-              {unassigned.length === 0 && <p className="text-xs text-ink/30 text-center py-4">Aucune commande</p>}
+              {unassigned.length === 0 && <p className="text-xs text-center py-4" style={{ color: t.text3 }}>Aucune commande</p>}
             </div>
           </div>
 
           {drivers.map(d => (
-            <div key={d.id} className="w-full sm:flex-shrink-0 sm:w-72 bg-kraft/30 rounded-xl p-3">
-              <h4 className="font-semibold text-ink text-sm mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-route/20 flex items-center justify-center text-route text-xs font-bold">
+            <div key={d.id} className="w-full sm:flex-shrink-0 sm:w-72 rounded-xl p-3" style={{ backgroundColor: t.tabBg }}>
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ color: t.text1 }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ backgroundColor: t.accentBg, color: t.accent }}>
                   {d.firstName[0]}{d.lastName[0]}
                 </div>
                 {d.firstName} {d.lastName}
-                <span className="ml-auto text-xs bg-kraft px-2 py-0.5 rounded-full">{(ordersByDriver[d.id] || []).length}</span>
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: t.tabBg, color: t.text2 }}>{(ordersByDriver[d.id] || []).length}</span>
               </h4>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {(ordersByDriver[d.id] || []).map(o => (
-                  <div key={o.id} className="bg-white rounded-lg p-3 border border-kraft/50">
+                  <div key={o.id} className="rounded-lg p-3"
+                    style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-route font-bold">{o.order_number}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusColors[o.status]}`}>{statusLabels[o.status]}</span>
+                      <span className="font-mono text-xs font-bold" style={{ color: t.accent }}>{o.order_number}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={getStatusStyle(o.status, t)}>{statusLabels[o.status]}</span>
                     </div>
-                    <p className="text-sm text-ink mt-1">{o.customer_name}</p>
-                    <p className="text-xs text-ink/40 truncate">{o.delivery_address}</p>
-                    {o.stop_order && <p className="text-xs text-route mt-1">Arrêt #{o.stop_order}</p>}
+                    <p className="text-sm mt-1" style={{ color: t.text1 }}>{o.customer_name}</p>
+                    <p className="text-xs truncate" style={{ color: t.text2 }}>{o.delivery_address}</p>
+                    {o.stop_order && <p className="text-xs mt-1" style={{ color: t.accent }}>Arrêt #{o.stop_order}</p>}
                   </div>
                 ))}
-                {(ordersByDriver[d.id] || []).length === 0 && <p className="text-xs text-ink/30 text-center py-4">Aucune commande</p>}
+                {(ordersByDriver[d.id] || []).length === 0 && <p className="text-xs text-center py-4" style={{ color: t.text3 }}>Aucune commande</p>}
               </div>
             </div>
           ))}
@@ -254,16 +287,18 @@ export default function TourneesTab() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 p-4" onClick={() => setShowCreate(false)}>
-          <div className="bg-paper rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-heading text-ink mb-4">Nouvelle tournée</h2>
-            <p className="text-sm text-ink/50 mb-4">{selected.length} commande(s) sélectionnée(s)</p>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => setShowCreate(false)}>
+          <div className="rounded-xl shadow-xl w-full max-w-md p-6" style={{ backgroundColor: t.cardBg }} onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-heading mb-4" style={{ color: t.text1 }}>Nouvelle tournée</h2>
+            <p className="text-sm mb-4" style={{ color: t.text2 }}>{selected.length} commande(s) sélectionnée(s)</p>
             <div className="space-y-3">
               <input placeholder="Nom de la tournée" value={tourForm.name}
                 onChange={e => setTourForm({ ...tourForm, name: e.target.value })}
-                className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm" />
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm"
+                style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
               <select value={tourForm.driverId} onChange={e => setTourForm({ ...tourForm, driverId: e.target.value })}
-                className="w-full px-4 py-2.5 border border-kraft rounded-lg bg-paper focus:outline-none focus:border-route text-sm">
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm"
+                style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }}>
                 <option value="">Choisir un livreur</option>
                 {drivers.filter(d => d.isActive).map(d => (
                   <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
@@ -271,8 +306,10 @@ export default function TourneesTab() {
               </select>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 bg-kraft text-ink rounded-lg font-semibold text-sm">Annuler</button>
-              <button onClick={createTour} className="flex-1 py-2.5 bg-go text-paper rounded-lg font-semibold text-sm">Créer</button>
+              <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-lg font-semibold text-sm"
+                style={{ backgroundColor: t.tabBg, color: t.text1 }}>Annuler</button>
+              <button onClick={createTour} className="flex-1 py-2.5 rounded-lg font-semibold text-sm"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>Créer</button>
             </div>
           </div>
         </div>

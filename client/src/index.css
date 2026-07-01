@@ -2,27 +2,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #FFFFFF;
-  --color-kraft: #E5E7EB;
-  --color-ink: #1A1A2E;
-  --color-route: #1C8275;
+  --color-paper: var(--theme-card, #FFFFFF);
+  --color-surface: var(--theme-bg, #F8F9FC);
+  --color-kraft: var(--theme-text3, #C9CDD3);
+  --color-ink: var(--theme-text1, #1A1A2E);
+  --color-ink2: var(--theme-text2, #9CA3AF);
+  --color-route: var(--theme-accent, #1C8275);
   --color-route-dark: #0D5650;
+  --color-accent-bg: var(--theme-accent-bg, #E8F5F2);
   --color-navy: #3140A8;
   --color-violet: #9472D4;
   --color-stop: #EF4444;
   --color-go: #16A34A;
   --color-warn: #D97706;
   --color-info: #2563EB;
+  --color-border: var(--theme-border, rgba(0,0,0,0.06));
+  --color-tab-bg: var(--theme-tab-bg, #F1F5F9);
+  --color-tab-active: var(--theme-tab-active, #FFFFFF);
+  --color-nav-bg: var(--theme-nav-bg, #FFFFFF);
+  --color-green-bg: var(--theme-green-bg, #ECFDF5);
+  --color-green-text: var(--theme-green-text, #059669);
+  --color-orange-bg: var(--theme-orange-bg, #FFF7ED);
+  --color-orange-text: var(--theme-orange-text, #D97706);
+  --color-blue-bg: var(--theme-blue-bg, #EFF6FF);
+  --color-blue-text: var(--theme-blue-text, #2563EB);
   --font-heading: 'DM Sans', sans-serif;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --radius-sm: var(--radius-sm, 8px);
+  --radius-md: var(--radius-md, 12px);
+  --radius-lg: var(--radius-lg, 14px);
+  --radius-xl: var(--radius-xl, 20px);
+  --shadow-card: var(--shadow-card, 0 1px 3px rgba(0,0,0,.06));
+  --shadow-cta: var(--shadow-cta, 0 4px 16px rgba(21,97,88,.25));
 }
 
 body {
   font-family: var(--font-body);
-  background-color: #F8F9FC;
-  color: var(--color-ink);
+  background-color: var(--theme-bg, #F8F9FC);
+  color: var(--theme-text1, #1A1A2E);
   margin: 0;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 h1, h2, h3, h4, h5, h6 {

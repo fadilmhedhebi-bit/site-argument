@@ -4,10 +4,13 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { api } from '../../utils/api';
+import { useTheme } from '../../ThemeContext';
+import { colors } from '../../theme';
 
-const COLORS = ['#1C8275', '#9472D4', '#3140A8', '#16A34A', '#1A1A2E'];
+const COLORS = [colors.teal, colors.violet, colors.navy, colors.green, colors.nearBlack];
 
 export default function StatsTab() {
+  const { t, isDark } = useTheme();
   const [stats, setStats] = useState(null);
   const [closings, setClosings] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -23,8 +26,8 @@ export default function StatsTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center py-12 text-ink/40">Chargement des statistiques...</div>;
-  if (!stats) return <div className="text-center py-12 text-ink/40">Erreur de chargement</div>;
+  if (loading) return <div className="text-center py-12" style={{ color: t.text2 }}>Chargement des statistiques...</div>;
+  if (!stats) return <div className="text-center py-12" style={{ color: t.text2 }}>Erreur de chargement</div>;
 
   const today = stats.today;
 
@@ -67,86 +70,86 @@ export default function StatsTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Commandes aujourd'hui", value: today.total, color: 'text-route' },
-          { label: 'Livrées', value: today.delivered, color: 'text-go' },
-          { label: 'Problèmes', value: today.problems, color: 'text-stop' },
-          { label: "CA aujourd'hui", value: `${parseFloat(today.revenue || 0).toFixed(2)} €`, color: 'text-ink' },
+          { label: "Commandes aujourd'hui", value: today.total, color: t.accent },
+          { label: 'Livrées', value: today.delivered, color: t.greenText },
+          { label: 'Problèmes', value: today.problems, color: t.orangeText },
+          { label: "CA aujourd'hui", value: `${parseFloat(today.revenue || 0).toFixed(2)} €`, color: t.text1 },
         ].map((kpi, i) => (
-          <div key={i} className="bg-white rounded-xl border border-kraft p-5">
-            <p className="text-xs text-ink/50 uppercase tracking-wide">{kpi.label}</p>
-            <p className={`text-3xl font-heading mt-1 ${kpi.color}`}>{kpi.value}</p>
+          <div key={i} className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: t.text2 }}>{kpi.label}</p>
+            <p className="text-3xl font-heading mt-1" style={{ color: kpi.color }}>{kpi.value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-kraft p-5">
-          <h3 className="text-sm font-heading text-ink mb-4">CA / jour (7 derniers jours)</h3>
+        <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 className="text-sm font-heading mb-4" style={{ color: t.text1 }}>CA / jour (7 derniers jours)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={revenueTrend}>
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
-              <Bar dataKey="CA" fill="#1C8275" radius={[4, 4, 0, 0]} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: t.text2 }} />
+              <YAxis tick={{ fontSize: 11, fill: t.text2 }} />
+              <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
+              <Bar dataKey="CA" fill={colors.teal} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl border border-kraft p-5">
-          <h3 className="text-sm font-heading text-ink mb-4">Livraisons / jour</h3>
+        <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 className="text-sm font-heading mb-4" style={{ color: t.text1 }}>Livraisons / jour</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={revenueTrend}>
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="Livraisons" fill="#9472D4" radius={[4, 4, 0, 0]} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: t.text2 }} />
+              <YAxis tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
+              <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
+              <Bar dataKey="Livraisons" fill={colors.violet} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl border border-kraft p-5">
-          <h3 className="text-sm font-heading text-ink mb-4">Répartition paiements</h3>
+        <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 className="text-sm font-heading mb-4" style={{ color: t.text1 }}>Répartition paiements</h3>
           {paymentData.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
                 <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3}>
                   {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
-                <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-ink/30 text-sm text-center py-12">Clôturez une journée pour voir les données</p>
+            <p className="text-sm text-center py-12" style={{ color: t.text3 }}>Clôturez une journée pour voir les données</p>
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-kraft p-5">
-          <h3 className="text-sm font-heading text-ink mb-4">Classement livreurs (30j)</h3>
+        <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 className="text-sm font-heading mb-4" style={{ color: t.text1 }}>Classement livreurs (30j)</h3>
           {driverRanking.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={driverRanking} layout="vertical">
-                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="Livrées" fill="#9472D4" radius={[0, 4, 4, 0]} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: t.text2 }} />
+                <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                <Bar dataKey="Livrées" fill={colors.violet} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="Problèmes" fill="#EF4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-ink/30 text-sm text-center py-12">Aucune donnée livreur</p>
+            <p className="text-sm text-center py-12" style={{ color: t.text3 }}>Aucune donnée livreur</p>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-kraft p-5">
-        <h3 className="text-sm font-heading text-ink mb-4">Heures de pointe</h3>
+      <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+        <h3 className="text-sm font-heading mb-4" style={{ color: t.text1 }}>Heures de pointe</h3>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={peakHours}>
-            <XAxis dataKey="heure" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="commandes" fill="#1C8275" radius={[4, 4, 0, 0]} />
+            <XAxis dataKey="heure" tick={{ fontSize: 10, fill: t.text2 }} />
+            <YAxis tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
+            <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
+            <Bar dataKey="commandes" fill={colors.teal} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
