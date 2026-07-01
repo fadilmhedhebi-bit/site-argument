@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_business ON users(business_id);
-CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_business ON users(business_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- ============================================================
 -- DRIVER TRACKING
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS driver_positions (
   recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_driver_positions_driver ON driver_positions(driver_id);
-CREATE INDEX idx_driver_positions_time ON driver_positions(recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_driver_positions_driver ON driver_positions(driver_id);
+CREATE INDEX IF NOT EXISTS idx_driver_positions_time ON driver_positions(recorded_at DESC);
 
 -- ============================================================
 -- PRODUCT CATALOG & INVENTORY
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_product_categories_business ON product_categories(business_id);
+CREATE INDEX IF NOT EXISTS idx_product_categories_business ON product_categories(business_id);
 
 CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_products_business ON products(business_id);
-CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_business ON products(business_id);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
 
 -- ============================================================
 -- PROMO CODES
@@ -106,8 +106,8 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_promo_codes_business ON promo_codes(business_id);
-CREATE INDEX idx_promo_codes_code ON promo_codes(code);
+CREATE INDEX IF NOT EXISTS idx_promo_codes_business ON promo_codes(business_id);
+CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code);
 
 -- ============================================================
 -- ORDERS
@@ -153,11 +153,11 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_orders_business ON orders(business_id);
-CREATE INDEX idx_orders_driver ON orders(driver_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_number ON orders(order_number);
-CREATE INDEX idx_orders_tour ON orders(tour_id);
+CREATE INDEX IF NOT EXISTS idx_orders_business ON orders(business_id);
+CREATE INDEX IF NOT EXISTS idx_orders_driver ON orders(driver_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_orders_tour ON orders(tour_id);
 
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   notes TEXT
 );
 
-CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 
 -- ============================================================
 -- ORDER STATUS HISTORY (for timeline tracking)
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS order_status_history (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_order_status_history_order ON order_status_history(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id);
 
 -- ============================================================
 -- TOURS (delivery rounds)
@@ -207,12 +207,16 @@ CREATE TABLE IF NOT EXISTS tours (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_tours_business ON tours(business_id);
-CREATE INDEX idx_tours_driver ON tours(driver_id);
-CREATE INDEX idx_tours_status ON tours(status);
+CREATE INDEX IF NOT EXISTS idx_tours_business ON tours(business_id);
+CREATE INDEX IF NOT EXISTS idx_tours_driver ON tours(driver_id);
+CREATE INDEX IF NOT EXISTS idx_tours_status ON tours(status);
 
 -- Add foreign key for orders.tour_id
-ALTER TABLE orders ADD CONSTRAINT fk_orders_tour FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_orders_tour') THEN
+    ALTER TABLE orders ADD CONSTRAINT fk_orders_tour FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- ============================================================
 -- DAILY CLOSINGS
@@ -237,7 +241,7 @@ CREATE TABLE IF NOT EXISTS daily_closings (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_daily_closings_unique ON daily_closings(business_id, closing_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_closings_unique ON daily_closings(business_id, closing_date);
 
 -- ============================================================
 -- NOTIFICATIONS
@@ -254,8 +258,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read) WHERE NOT is_read;
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read) WHERE NOT is_read;
 
 -- ============================================================
 -- INGREDIENTS (matières premières)
