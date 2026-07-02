@@ -10,6 +10,9 @@ import LivreurPage from './pages/LivreurPage';
 import ClientCommandePage from './pages/ClientCommandePage';
 import CustomerPage from './pages/CustomerPage';
 import SuiviCommandePage from './pages/SuiviCommandePage';
+import SettingsPage from './pages/SettingsPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function ProtectedRoute({ children, roles }) {
   const user = useAuthStore((s) => s.user);
@@ -34,6 +37,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/commander/:businessId" element={<ClientCommandePage />} />
         <Route path="/client/:businessId" element={<CustomerPage />} />
         <Route path="/suivi" element={<SuiviCommandePage />} />
@@ -46,6 +51,9 @@ export default function App() {
           } />
           <Route path="livraison" element={
             <ProtectedRoute roles={['driver', 'manager_driver']}><LivreurPage /></ProtectedRoute>
+          } />
+          <Route path="settings" element={
+            <ProtectedRoute><SettingsPage /></ProtectedRoute>
           } />
         </Route>
       </Routes>

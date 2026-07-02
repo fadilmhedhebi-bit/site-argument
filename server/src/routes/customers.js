@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { sendCustomerVerificationEmail, sendCustomerPasswordResetEmail } from '../utils/email.js';
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,6 +58,8 @@ router.post('/register', async (req, res) => {
     if (existing.rows.length) return res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const loyaltyConfig = await pool.query(
       'SELECT welcome_points FROM loyalty_config WHERE business_id = $1 AND is_active = true',
@@ -64,9 +68,9 @@ router.post('/register', async (req, res) => {
     const welcomePoints = loyaltyConfig.rows[0]?.welcome_points || 0;
 
     const result = await pool.query(
-      `INSERT INTO customers (business_id, email, password_hash, first_name, last_name, phone, loyalty_points)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, business_id, email, first_name, last_name, phone, loyalty_points, created_at`,
-      [businessId, email.trim().toLowerCase(), passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, welcomePoints]
+      `INSERT INTO customers (business_id, email, password_hash, first_name, last_name, phone, loyalty_points, email_verified, verification_token, verification_expires)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8,$9) RETURNING id, business_id, email, first_name, last_name, phone, loyalty_points, created_at`,
+      [businessId, email.trim().toLowerCase(), passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, welcomePoints, verificationToken, verificationExpires]
     );
 
     const customer = result.rows[0];
@@ -78,18 +82,15 @@ router.post('/register', async (req, res) => {
       );
     }
 
+    sendCustomerVerificationEmail(email.trim(), verificationToken, firstName.trim(), businessId).catch(console.error);
+
     res.status(201).json({
-      token: generateCustomerToken(customer),
-      customer: {
-        id: customer.id, email: customer.email, firstName: customer.first_name,
-        lastName: customer.last_name, phone: customer.phone,
-        loyaltyPoints: customer.loyalty_points, businessId: customer.business_id,
-        businessName: biz.rows[0].name,
-      },
+      message: 'Compte créé ! Vérifiez votre email pour activer votre compte.',
+      needsVerification: true,
     });
   } catch (err) {
     console.error('Customer register error:', err);
-    res.status(500).json({ error: 'Erreur lors de l\'inscription' });
+    res.status(500).json({ error: "Erreur lors de l'inscription" });
   }
 });
 
@@ -115,11 +116,19 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, customer.password_hash);
     if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' });
 
+    if (!customer.email_verified) {
+      return res.status(403).json({
+        error: 'Veuillez vérifier votre adresse email avant de vous connecter',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: customer.email,
+      });
+    }
+
     res.json({
       token: generateCustomerToken(customer),
       customer: {
         id: customer.id, email: customer.email, firstName: customer.first_name,
-        lastName: customer.last_name, phone: customer.phone,
+        lastName: customer.last_name, phone: customer.phone, avatarUrl: customer.avatar_url,
         loyaltyPoints: customer.loyalty_points, totalOrders: customer.total_orders,
         totalSpent: parseFloat(customer.total_spent), businessId: customer.business_id,
         businessName: customer.business_name,
@@ -128,6 +137,111 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Customer login error:', err);
     res.status(500).json({ error: 'Erreur lors de la connexion' });
+  }
+});
+
+// ============================================================
+// EMAIL VERIFICATION & PASSWORD RESET (public)
+// ============================================================
+
+router.get('/verify-email/:token', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE customers SET email_verified = true, verification_token = NULL, verification_expires = NULL, updated_at = NOW()
+       WHERE verification_token = $1 AND verification_expires > NOW()
+       RETURNING id, business_id, email, first_name, last_name, phone, loyalty_points, total_orders, total_spent`,
+      [req.params.token]
+    );
+    if (!result.rows.length) {
+      return res.status(400).json({ error: 'Lien invalide ou expiré' });
+    }
+    const c = result.rows[0];
+    const biz = await pool.query('SELECT name FROM businesses WHERE id = $1', [c.business_id]);
+
+    res.json({
+      message: 'Email vérifié avec succès !',
+      token: generateCustomerToken(c),
+      customer: {
+        id: c.id, email: c.email, firstName: c.first_name, lastName: c.last_name,
+        phone: c.phone, loyaltyPoints: c.loyalty_points, totalOrders: c.total_orders,
+        totalSpent: parseFloat(c.total_spent), businessId: c.business_id,
+        businessName: biz.rows[0]?.name,
+      },
+    });
+  } catch (err) {
+    console.error('Verify customer email error:', err);
+    res.status(500).json({ error: 'Erreur lors de la vérification' });
+  }
+});
+
+router.post('/resend-verification', async (req, res) => {
+  const { email, businessId } = req.body;
+  if (!email || !businessId) return res.status(400).json({ error: 'Email et businessId requis' });
+
+  try {
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const result = await pool.query(
+      `UPDATE customers SET verification_token = $1, verification_expires = $2
+       WHERE email = $3 AND business_id = $4 AND email_verified = false
+       RETURNING first_name`,
+      [verificationToken, verificationExpires, email.trim().toLowerCase(), businessId]
+    );
+    if (result.rows.length) {
+      sendCustomerVerificationEmail(email.trim(), verificationToken, result.rows[0].first_name, businessId).catch(console.error);
+    }
+    res.json({ message: 'Si un compte existe avec cet email, un lien de vérification a été envoyé.' });
+  } catch (err) {
+    console.error('Resend customer verification error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  const { email, businessId } = req.body;
+  if (!email || !businessId) return res.status(400).json({ error: 'Email et businessId requis' });
+
+  try {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+    const result = await pool.query(
+      `UPDATE customers SET reset_token = $1, reset_expires = $2
+       WHERE email = $3 AND business_id = $4 AND is_active = true
+       RETURNING first_name`,
+      [resetToken, resetExpires, email.trim().toLowerCase(), businessId]
+    );
+    if (result.rows.length) {
+      sendCustomerPasswordResetEmail(email.trim(), resetToken, result.rows[0].first_name, businessId).catch(console.error);
+    }
+    res.json({ message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.' });
+  } catch (err) {
+    console.error('Customer forgot password error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token et mot de passe requis' });
+  if (password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
+
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await pool.query(
+      `UPDATE customers SET password_hash = $1, reset_token = NULL, reset_expires = NULL, updated_at = NOW()
+       WHERE reset_token = $2 AND reset_expires > NOW()
+       RETURNING id`,
+      [passwordHash, token]
+    );
+    if (!result.rows.length) {
+      return res.status(400).json({ error: 'Lien invalide ou expiré' });
+    }
+    res.json({ message: 'Mot de passe réinitialisé avec succès' });
+  } catch (err) {
+    console.error('Customer reset password error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
   }
 });
 
@@ -267,6 +381,55 @@ router.post('/me/redeem', authenticateCustomer, async (req, res) => {
     res.status(500).json({ error: 'Erreur' });
   } finally {
     client.release();
+  }
+});
+
+// PATCH /api/customers/me/profile
+router.patch('/me/profile', authenticateCustomer, async (req, res) => {
+  const { firstName, lastName, phone } = req.body;
+  if (!firstName?.trim() || !lastName?.trim()) return res.status(400).json({ error: 'Prénom et nom requis' });
+
+  try {
+    const result = await pool.query(
+      `UPDATE customers SET first_name = $1, last_name = $2, phone = $3, updated_at = NOW()
+       WHERE id = $4
+       RETURNING id, email, first_name, last_name, phone, loyalty_points, total_orders, total_spent, business_id, avatar_url`,
+      [firstName.trim(), lastName.trim(), phone?.trim() || null, req.customer.id]
+    );
+    const c = result.rows[0];
+    const biz = await pool.query('SELECT name FROM businesses WHERE id = $1', [c.business_id]);
+    res.json({
+      id: c.id, email: c.email, firstName: c.first_name, lastName: c.last_name,
+      phone: c.phone, loyaltyPoints: c.loyalty_points, totalOrders: c.total_orders,
+      totalSpent: parseFloat(c.total_spent), businessId: c.business_id,
+      businessName: biz.rows[0]?.name, avatarUrl: c.avatar_url,
+    });
+  } catch (err) {
+    console.error('Update customer profile error:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour' });
+  }
+});
+
+// PATCH /api/customers/me/password
+router.patch('/me/password', authenticateCustomer, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Le nouveau mot de passe doit faire au moins 6 caractères' });
+
+  try {
+    const result = await pool.query('SELECT password_hash FROM customers WHERE id = $1', [req.customer.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Compte non trouvé' });
+
+    const valid = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE customers SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, req.customer.id]);
+
+    res.json({ message: 'Mot de passe modifié avec succès' });
+  } catch (err) {
+    console.error('Customer change password error:', err);
+    res.status(500).json({ error: 'Erreur lors du changement de mot de passe' });
   }
 });
 

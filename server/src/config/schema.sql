@@ -357,6 +357,30 @@ CREATE INDEX IF NOT EXISTS idx_loyalty_transactions_customer ON loyalty_transact
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
 
 -- ============================================================
+-- EMAIL VERIFICATION & PASSWORD RESET
+-- ============================================================
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Mark existing users as verified so they aren't locked out
+UPDATE users SET email_verified = true WHERE email_verified = false AND verification_token IS NULL;
+
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Mark existing customers as verified so they aren't locked out
+UPDATE customers SET email_verified = true WHERE email_verified = false AND verification_token IS NULL;
+
+-- ============================================================
 -- HELPER: generate order numbers
 -- ============================================================
 

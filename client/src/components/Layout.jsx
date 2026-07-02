@@ -59,13 +59,19 @@ export default function Layout() {
                 </span>
               )}
             </button>
-            <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: t.accent }}>
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </div>
-            <div className="text-sm hidden sm:block">
-              <span className="font-medium" style={{ color: t.text1 }}>{user?.firstName}</span>
-              <span className="ml-1 text-xs" style={{ color: t.text2 }}>{roleLabel[user?.role]}</span>
-            </div>
+            <Link to="/settings" className="flex items-center gap-2 no-underline">
+              {user?.avatarUrl ? (
+                <img src={`${(import.meta.env.VITE_API_URL || '')}${user.avatarUrl}`} alt="" className="w-[34px] h-[34px] rounded-full object-cover" />
+              ) : (
+                <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: t.accent }}>
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </div>
+              )}
+              <div className="text-sm hidden sm:block">
+                <span className="font-medium" style={{ color: t.text1 }}>{user?.firstName}</span>
+                <span className="ml-1 text-xs" style={{ color: t.text2 }}>{roleLabel[user?.role]}</span>
+              </div>
+            </Link>
             <button
               onClick={() => { logout(); navigate('/login'); }}
               className="text-xs hover:text-stop transition-colors p-1"

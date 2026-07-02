@@ -1,12 +1,33 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import multer from 'multer';
 import pool from '../config/db.js';
 import { generateToken, authenticate, requireRole } from '../middleware/auth.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.js';
 
 const router = Router();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// POST /api/auth/register - Inscription gestionnaire + commerce
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '../../uploads/avatars'),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `${crypto.randomUUID()}${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Format image invalide'));
+  },
+});
+
+// POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { businessName, businessAddress, businessPhone, firstName, lastName, email, phone, username, password } = req.body;
 
@@ -17,13 +38,13 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Prénom et nom sont requis' });
   }
   if (!username?.trim() || username.length < 3) {
-    return res.status(400).json({ error: 'Le nom d\'utilisateur doit faire au moins 3 caractères' });
+    return res.status(400).json({ error: "Le nom d'utilisateur doit faire au moins 3 caractères" });
   }
   if (!password || password.length < 6) {
     return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
   }
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Format d\'email invalide' });
+  if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "L'email est requis et doit être valide" });
   }
 
   const client = await pool.connect();
@@ -33,7 +54,7 @@ router.post('/register', async (req, res) => {
     const existing = await client.query('SELECT id FROM users WHERE username = $1', [username.trim()]);
     if (existing.rows.length > 0) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Ce nom d\'utilisateur est déjà pris' });
+      return res.status(409).json({ error: "Ce nom d'utilisateur est déjà pris" });
     }
 
     const bizResult = await client.query(
@@ -43,35 +64,136 @@ router.post('/register', async (req, res) => {
     const businessId = bizResult.rows[0].id;
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     const userResult = await client.query(
-      `INSERT INTO users (business_id, username, password_hash, first_name, last_name, email, phone, role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'manager') RETURNING id, role`,
-      [businessId, username.trim(), passwordHash, firstName.trim(), lastName.trim(), email?.trim() || null, phone?.trim() || null]
+      `INSERT INTO users (business_id, username, password_hash, first_name, last_name, email, phone, role, email_verified, verification_token, verification_expires)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'manager', false, $8, $9) RETURNING id, role`,
+      [businessId, username.trim(), passwordHash, firstName.trim(), lastName.trim(), email.trim(), phone?.trim() || null, verificationToken, verificationExpires]
     );
 
     await client.query('COMMIT');
 
-    const user = { id: userResult.rows[0].id, role: userResult.rows[0].role, business_id: businessId };
+    sendVerificationEmail(email.trim(), verificationToken, firstName.trim()).catch(err => {
+      console.error('Failed to send verification email:', err);
+    });
+
     res.status(201).json({
-      token: generateToken(user),
-      user: {
-        id: user.id,
-        username: username.trim(),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        role: user.role,
-        businessId,
-        businessName: businessName.trim(),
-        businessAddress: businessAddress?.trim() || null,
-        businessPhone: businessPhone?.trim() || null,
-      },
+      message: 'Compte créé ! Vérifiez votre email pour activer votre compte.',
+      needsVerification: true,
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Registration error:', err);
-    res.status(500).json({ error: 'Erreur interne lors de l\'inscription' });
+    res.status(500).json({ error: "Erreur interne lors de l'inscription" });
   } finally {
     client.release();
+  }
+});
+
+// GET /api/auth/verify-email/:token
+router.get('/verify-email/:token', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE users SET email_verified = true, verification_token = NULL, verification_expires = NULL, updated_at = NOW()
+       WHERE verification_token = $1 AND verification_expires > NOW()
+       RETURNING id, role, business_id, username, first_name, last_name, email`,
+      [req.params.token]
+    );
+    if (!result.rows.length) {
+      return res.status(400).json({ error: 'Lien invalide ou expiré' });
+    }
+    const u = result.rows[0];
+    const bizResult = await pool.query('SELECT name, address, phone FROM businesses WHERE id = $1', [u.business_id]);
+    const biz = bizResult.rows[0] || {};
+
+    res.json({
+      message: 'Email vérifié avec succès !',
+      token: generateToken(u),
+      user: {
+        id: u.id, username: u.username, firstName: u.first_name, lastName: u.last_name,
+        role: u.role, businessId: u.business_id, businessName: biz.name,
+        businessAddress: biz.address, businessPhone: biz.phone,
+      },
+    });
+  } catch (err) {
+    console.error('Verify email error:', err);
+    res.status(500).json({ error: 'Erreur lors de la vérification' });
+  }
+});
+
+// POST /api/auth/resend-verification
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email requis' });
+
+  try {
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const result = await pool.query(
+      `UPDATE users SET verification_token = $1, verification_expires = $2
+       WHERE email = $3 AND email_verified = false
+       RETURNING first_name`,
+      [verificationToken, verificationExpires, email.trim().toLowerCase()]
+    );
+    if (result.rows.length) {
+      sendVerificationEmail(email.trim(), verificationToken, result.rows[0].first_name).catch(console.error);
+    }
+    res.json({ message: 'Si un compte existe avec cet email, un lien de vérification a été envoyé.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email requis' });
+
+  try {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+    const result = await pool.query(
+      `UPDATE users SET reset_token = $1, reset_expires = $2
+       WHERE email = $3 AND is_active = true
+       RETURNING first_name`,
+      [resetToken, resetExpires, email.trim().toLowerCase()]
+    );
+    if (result.rows.length) {
+      sendPasswordResetEmail(email.trim(), resetToken, result.rows[0].first_name).catch(console.error);
+    }
+    res.json({ message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token et mot de passe requis' });
+  if (password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
+
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await pool.query(
+      `UPDATE users SET password_hash = $1, reset_token = NULL, reset_expires = NULL, updated_at = NOW()
+       WHERE reset_token = $2 AND reset_expires > NOW()
+       RETURNING id`,
+      [passwordHash, token]
+    );
+    if (!result.rows.length) {
+      return res.status(400).json({ error: 'Lien invalide ou expiré' });
+    }
+    res.json({ message: 'Mot de passe réinitialisé avec succès' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
   }
 });
 
@@ -79,14 +201,14 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
-    return res.status(400).json({ error: 'Nom d\'utilisateur et mot de passe requis' });
+    return res.status(400).json({ error: "Nom d'utilisateur et mot de passe requis" });
   }
 
   try {
     const result = await pool.query(
       `SELECT u.id, u.business_id, u.username, u.password_hash, u.first_name, u.last_name,
-              u.role, u.is_active, b.name as business_name, b.address as business_address,
-              b.phone as business_phone
+              u.email, u.role, u.is_active, u.email_verified, u.avatar_url,
+              b.name as business_name, b.address as business_address, b.phone as business_phone
        FROM users u JOIN businesses b ON b.id = u.business_id
        WHERE u.username = $1`,
       [username.trim()]
@@ -105,20 +227,22 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Identifiants incorrects' });
     }
 
+    if (!user.email_verified && user.email) {
+      return res.status(403).json({
+        error: 'Veuillez vérifier votre adresse email avant de vous connecter',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
+      });
+    }
+
     await pool.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
     res.json({
       token: generateToken(user),
       user: {
-        id: user.id,
-        username: user.username,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        businessId: user.business_id,
-        businessName: user.business_name,
-        businessAddress: user.business_address,
-        businessPhone: user.business_phone,
+        id: user.id, username: user.username, firstName: user.first_name, lastName: user.last_name,
+        email: user.email, role: user.role, businessId: user.business_id, avatarUrl: user.avatar_url,
+        businessName: user.business_name, businessAddress: user.business_address, businessPhone: user.business_phone,
       },
     });
   } catch (err) {
@@ -127,7 +251,79 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/create-driver - Création livreur avec identifiants auto-générés
+// PATCH /api/auth/profile - Update profile (name, email)
+router.patch('/profile', authenticate, async (req, res) => {
+  const { firstName, lastName } = req.body;
+  if (!firstName?.trim() || !lastName?.trim()) {
+    return res.status(400).json({ error: 'Prénom et nom sont requis' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE users SET first_name = $1, last_name = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, username, first_name, last_name, email, role, business_id, avatar_url`,
+      [firstName.trim(), lastName.trim(), req.user.id]
+    );
+    const u = result.rows[0];
+    const biz = await pool.query('SELECT name, address, phone FROM businesses WHERE id = $1', [u.business_id]);
+    const b = biz.rows[0] || {};
+
+    res.json({
+      id: u.id, username: u.username, firstName: u.first_name, lastName: u.last_name,
+      email: u.email, role: u.role, businessId: u.business_id, avatarUrl: u.avatar_url,
+      businessName: b.name, businessAddress: b.address, businessPhone: b.phone,
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du profil' });
+  }
+});
+
+// PATCH /api/auth/password - Change password
+router.patch('/password', authenticate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Le nouveau mot de passe doit faire au moins 6 caractères' });
+
+  try {
+    const result = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+    const valid = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, req.user.id]);
+
+    res.json({ message: 'Mot de passe modifié avec succès' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Erreur lors du changement de mot de passe' });
+  }
+});
+
+// POST /api/auth/avatar - Upload profile photo
+router.post('/avatar', authenticate, (req, res) => {
+  upload.single('avatar')(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'Image trop volumineuse (max 2 Mo)' });
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Aucune image envoyée' });
+
+    try {
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      await pool.query('UPDATE users SET avatar_url = $1, updated_at = NOW() WHERE id = $2', [avatarUrl, req.user.id]);
+      res.json({ avatarUrl });
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      res.status(500).json({ error: "Erreur lors de l'upload" });
+    }
+  });
+});
+
+// POST /api/auth/create-driver
 router.post('/create-driver', authenticate, requireRole('manager'), async (req, res) => {
   const { firstName, lastName, phone, email } = req.body;
 
@@ -144,26 +340,20 @@ router.post('/create-driver', authenticate, requireRole('manager'), async (req, 
     const passwordHash = await bcrypt.hash(plainPassword, 12);
 
     const result = await pool.query(
-      `INSERT INTO users (business_id, username, password_hash, first_name, last_name, phone, email, role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'driver') RETURNING id, created_at`,
+      `INSERT INTO users (business_id, username, password_hash, first_name, last_name, phone, email, role, email_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'driver', true) RETURNING id, created_at`,
       [req.user.businessId, username, passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, email?.trim() || null]
     );
 
     res.status(201).json({
-      id: result.rows[0].id,
-      username,
-      password: plainPassword,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      phone: phone?.trim() || null,
+      id: result.rows[0].id, username, password: plainPassword,
+      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone?.trim() || null,
       createdAt: result.rows[0].created_at,
       message: 'Communiquez ces identifiants au livreur. Le mot de passe ne pourra plus être affiché.',
     });
   } catch (err) {
     console.error('Create driver error:', err);
-    if (err.code === '23505') {
-      return res.status(409).json({ error: 'Erreur de conflit, veuillez réessayer' });
-    }
+    if (err.code === '23505') return res.status(409).json({ error: 'Erreur de conflit, veuillez réessayer' });
     res.status(500).json({ error: 'Erreur interne lors de la création du livreur' });
   }
 });
@@ -174,7 +364,7 @@ router.post('/drivers', authenticate, requireRole('manager'), async (req, res, n
   router.handle(req, res, next);
 });
 
-// PATCH /api/auth/role - Basculer manager <-> manager_driver
+// PATCH /api/auth/role
 router.patch('/role', authenticate, requireRole('manager'), async (req, res) => {
   const { role } = req.body;
   if (!['manager', 'manager_driver'].includes(role)) {
@@ -201,12 +391,12 @@ router.patch('/role', authenticate, requireRole('manager'), async (req, res) => 
   }
 });
 
-// GET /api/auth/me - Profil utilisateur courant
+// GET /api/auth/me
 router.get('/me', authenticate, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.username, u.first_name, u.last_name, u.email, u.phone, u.role,
-              u.business_id, u.is_active, u.last_login, u.created_at,
+              u.business_id, u.is_active, u.last_login, u.created_at, u.avatar_url,
               b.name as business_name, b.address as business_address, b.phone as business_phone
        FROM users u JOIN businesses b ON b.id = u.business_id WHERE u.id = $1`,
       [req.user.id]
@@ -219,7 +409,7 @@ router.get('/me', authenticate, async (req, res) => {
       id: u.id, username: u.username, firstName: u.first_name, lastName: u.last_name,
       email: u.email, phone: u.phone, role: u.role, businessId: u.business_id,
       businessName: u.business_name, businessAddress: u.business_address,
-      businessPhone: u.business_phone, isActive: u.is_active,
+      businessPhone: u.business_phone, isActive: u.is_active, avatarUrl: u.avatar_url,
       lastLogin: u.last_login, createdAt: u.created_at,
     });
   } catch (err) {
@@ -228,7 +418,7 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
-// GET /api/auth/drivers - Liste des livreurs du commerce
+// GET /api/auth/drivers
 router.get('/drivers', authenticate, requireRole('manager'), async (req, res) => {
   try {
     const result = await pool.query(
@@ -247,16 +437,14 @@ router.get('/drivers', authenticate, requireRole('manager'), async (req, res) =>
   }
 });
 
-// PATCH /api/auth/drivers/:id/toggle - Activer/désactiver un livreur
+// PATCH /api/auth/drivers/:id/toggle
 router.patch('/drivers/:id/toggle', authenticate, requireRole('manager'), async (req, res) => {
   try {
     const driver = await pool.query(
-      'SELECT id, is_active FROM users WHERE id = $1 AND business_id = $2 AND role IN (\'driver\', \'manager_driver\')',
+      "SELECT id, is_active FROM users WHERE id = $1 AND business_id = $2 AND role IN ('driver', 'manager_driver')",
       [req.params.id, req.user.businessId]
     );
-    if (!driver.rows.length) {
-      return res.status(404).json({ error: 'Livreur non trouvé' });
-    }
+    if (!driver.rows.length) return res.status(404).json({ error: 'Livreur non trouvé' });
 
     const newStatus = !driver.rows[0].is_active;
     await pool.query('UPDATE users SET is_active = $1, updated_at = NOW() WHERE id = $2', [newStatus, req.params.id]);
@@ -267,16 +455,14 @@ router.patch('/drivers/:id/toggle', authenticate, requireRole('manager'), async 
   }
 });
 
-// PATCH /api/auth/drivers/:id/reset-password - Réinitialiser mot de passe livreur
+// PATCH /api/auth/drivers/:id/reset-password
 router.patch('/drivers/:id/reset-password', authenticate, requireRole('manager'), async (req, res) => {
   try {
     const driver = await pool.query(
-      'SELECT id, first_name, last_name, username FROM users WHERE id = $1 AND business_id = $2 AND role IN (\'driver\', \'manager_driver\')',
+      "SELECT id, first_name, last_name, username FROM users WHERE id = $1 AND business_id = $2 AND role IN ('driver', 'manager_driver')",
       [req.params.id, req.user.businessId]
     );
-    if (!driver.rows.length) {
-      return res.status(404).json({ error: 'Livreur non trouvé' });
-    }
+    if (!driver.rows.length) return res.status(404).json({ error: 'Livreur non trouvé' });
 
     const plainPassword = crypto.randomBytes(4).toString('hex');
     const passwordHash = await bcrypt.hash(plainPassword, 12);
@@ -284,11 +470,8 @@ router.patch('/drivers/:id/reset-password', authenticate, requireRole('manager')
 
     const d = driver.rows[0];
     res.json({
-      id: d.id,
-      username: d.username,
-      password: plainPassword,
-      firstName: d.first_name,
-      lastName: d.last_name,
+      id: d.id, username: d.username, password: plainPassword,
+      firstName: d.first_name, lastName: d.last_name,
       message: 'Nouveau mot de passe généré. Communiquez-le au livreur.',
     });
   } catch (err) {

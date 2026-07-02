@@ -1,0 +1,248 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../ThemeContext';
+import { api } from '../utils/api';
+import { shadows } from '../theme';
+
+const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
+
+export default function SettingsPage() {
+  const { user, updateUser, logout } = useAuthStore();
+  const { t, isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const [profileForm, setProfileForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [profileMsg, setProfileMsg] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const [profileErr, setProfileErr] = useState('');
+  const [passwordErr, setPasswordErr] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const avatarUrl = user?.avatarUrl ? `${API_BASE.replace('/api', '')}${user.avatarUrl}` : null;
+
+  const handleProfileSave = async () => {
+    setProfileErr('');
+    setProfileMsg('');
+    if (!profileForm.firstName?.trim() || !profileForm.lastName?.trim()) {
+      return setProfileErr('Prénom et nom sont requis');
+    }
+    setSaving(true);
+    try {
+      const updated = await api.patch('/auth/profile', profileForm);
+      updateUser({ firstName: updated.firstName, lastName: updated.lastName });
+      setProfileMsg('Profil mis à jour');
+    } catch (err) {
+      setProfileErr(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordErr('');
+    setPasswordMsg('');
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      return setPasswordErr('Tous les champs sont requis');
+    }
+    if (passwordForm.newPassword.length < 6) {
+      return setPasswordErr('6 caractères minimum');
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      return setPasswordErr('Les mots de passe ne correspondent pas');
+    }
+    setSaving(true);
+    try {
+      await api.patch('/auth/password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      setPasswordMsg('Mot de passe modifié');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setPasswordErr(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return setProfileErr('Image trop volumineuse (max 2 Mo)');
+
+    setUploading(true);
+    setProfileErr('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const result = await api.upload('/auth/avatar', formData);
+      updateUser({ avatarUrl: result.avatarUrl });
+      setProfileMsg('Photo de profil mise à jour');
+    } catch (err) {
+      setProfileErr(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const inputStyle = { backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight" style={{ color: t.text1 }}>Paramètres</h1>
+        <button onClick={() => navigate(-1)} className="text-sm hover:underline" style={{ color: t.accent }}>
+          Retour
+        </button>
+      </div>
+
+      {/* Theme */}
+      <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Apparence</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium" style={{ color: t.text1 }}>Mode sombre</p>
+            <p className="text-xs mt-0.5" style={{ color: t.text2 }}>
+              {isDark ? 'Le mode sombre est activé' : 'Le mode clair est activé'}
+            </p>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="relative w-12 h-7 rounded-full transition-colors"
+            style={{ backgroundColor: isDark ? t.accent : t.text3 }}
+          >
+            <span
+              className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow-sm"
+              style={{ left: isDark ? '22px' : '2px' }}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Profile */}
+      <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Profil</h2>
+
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+            ) : (
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white" style={{ backgroundColor: t.accent }}>
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+            <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer"
+              style={{ backgroundColor: t.accent, color: '#fff' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+            </label>
+          </div>
+          <div>
+            <p className="font-semibold" style={{ color: t.text1 }}>{user?.firstName} {user?.lastName}</p>
+            <p className="text-xs" style={{ color: t.text2 }}>{user?.email || user?.username}</p>
+            {uploading && <p className="text-xs mt-1" style={{ color: t.accent }}>Upload en cours...</p>}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Prénom</label>
+              <input
+                value={profileForm.firstName}
+                onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Nom</label>
+              <input
+                value={profileForm.lastName}
+                onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          {profileErr && <p className="text-xs" style={{ color: '#D97706' }}>{profileErr}</p>}
+          {profileMsg && <p className="text-xs" style={{ color: t.greenText }}>{profileMsg}</p>}
+          <button
+            onClick={handleProfileSave}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+
+      {/* Password */}
+      <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Mot de passe</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Mot de passe actuel</label>
+            <input
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Nouveau mot de passe</label>
+            <input
+              type="password"
+              value={passwordForm.newPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              placeholder="6 caractères minimum"
+              className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Confirmer</label>
+            <input
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
+              style={inputStyle}
+            />
+          </div>
+          {passwordErr && <p className="text-xs" style={{ color: '#D97706' }}>{passwordErr}</p>}
+          {passwordMsg && <p className="text-xs" style={{ color: t.greenText }}>{passwordMsg}</p>}
+          <button
+            onClick={handlePasswordChange}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            Modifier le mot de passe
+          </button>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+        <button
+          onClick={() => { logout(); navigate('/login'); }}
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-colors"
+          style={{ backgroundColor: isDark ? '#3B1C1C' : '#FEF2F2', color: '#EF4444' }}
+        >
+          Se déconnecter
+        </button>
+      </div>
+    </div>
+  );
+}

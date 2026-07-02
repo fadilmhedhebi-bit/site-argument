@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
 import { colors, shadows } from '../theme';
+import { api } from '../utils/api';
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login');
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, register } = useAuthStore();
+  const { login } = useAuthStore();
   const { t, isDark } = useTheme();
 
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -19,6 +20,12 @@ export default function LoginPage() {
     firstName: '', lastName: '', email: '', username: '', password: '',
     businessName: '', businessAddress: '', businessPhone: '',
   });
+
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [registrationDone, setRegistrationDone] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendMsg, setResendMsg] = useState('');
 
   const splashBg = isDark
     ? `linear-gradient(160deg, ${colors.tealDark}, ${colors.darkBg})`
@@ -32,7 +39,12 @@ export default function LoginPage() {
       await login(loginForm.username, loginForm.password);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      if (err.message.includes('vérifier votre adresse email')) {
+        setVerificationEmail(loginForm.username);
+        setMode('verify-notice');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,12 +54,39 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await register(regForm);
-      navigate('/');
+      await api.post('/auth/register', regForm);
+      setRegistrationDone(true);
+      setMode('verify-notice');
+      setVerificationEmail(regForm.email);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setForgotMsg('');
+    setLoading(true);
+    try {
+      const result = await api.post('/auth/forgot-password', { email: forgotEmail });
+      setForgotMsg(result.message);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendMsg('');
+    try {
+      const result = await api.post('/auth/resend-verification', { email: verificationEmail });
+      setResendMsg(result.message);
+    } catch (err) {
+      setResendMsg(err.message);
     }
   };
 
@@ -59,6 +98,9 @@ export default function LoginPage() {
       if (!regForm.firstName || !regForm.lastName || !regForm.username || !regForm.password) {
         return setError('Tous les champs obligatoires doivent être remplis');
       }
+      if (!regForm.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) {
+        return setError('Un email valide est requis pour la vérification');
+      }
       if (regForm.password.length < 6) return setError('Mot de passe : 6 caractères minimum');
       setStep(2);
     } else if (step === 2) {
@@ -66,6 +108,100 @@ export default function LoginPage() {
       handleRegister();
     }
   };
+
+  if (mode === 'forgot') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: splashBg }}>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4"><FoodlyLogo size={88} /></div>
+            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+          </div>
+
+          <div className="shadow-sm p-8" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
+            <h2 className="text-xl font-bold mb-2" style={{ color: t.text1 }}>Mot de passe oublié</h2>
+            <p className="text-sm mb-6" style={{ color: t.text2 }}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
+
+            {forgotMsg ? (
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
+                  &#10003;
+                </div>
+                <p className="text-sm mb-4" style={{ color: t.text1 }}>{forgotMsg}</p>
+                <button onClick={() => { setMode('login'); setForgotMsg(''); setForgotEmail(''); }}
+                  className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>
+                  Retour à la connexion
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <input
+                  type="email" placeholder="Votre adresse email"
+                  value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-[14px] focus:outline-none text-sm"
+                  style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }}
+                />
+                {error && <p className="text-sm" style={{ color: colors.orange }}>{error}</p>}
+                <button type="submit" disabled={loading || !forgotEmail}
+                  className="w-full py-4 rounded-[14px] font-semibold text-[15px] transition-colors disabled:opacity-50"
+                  style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', color: 'white', boxShadow: shadows.cta }}>
+                  {loading ? 'Envoi...' : 'Envoyer le lien'}
+                </button>
+              </form>
+            )}
+
+            <p className="text-center text-sm mt-6" style={{ color: t.text2 }}>
+              <button onClick={() => { setMode('login'); setError(''); setForgotMsg(''); }}
+                className="font-semibold hover:underline" style={{ color: t.accent }}>
+                Retour à la connexion
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'verify-notice') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: splashBg }}>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4"><FoodlyLogo size={88} /></div>
+            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+          </div>
+
+          <div className="shadow-sm p-8 text-center" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl mx-auto mb-4" style={{ backgroundColor: t.accentBg, color: t.accent }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold mb-2" style={{ color: t.text1 }}>Vérifiez votre email</h2>
+            <p className="text-sm mb-4" style={{ color: t.text2 }}>
+              {registrationDone
+                ? 'Un email de confirmation a été envoyé. Cliquez sur le lien dans l\'email pour activer votre compte.'
+                : 'Votre email n\'est pas encore vérifié. Vérifiez votre boîte de réception.'}
+            </p>
+
+            <button onClick={handleResendVerification}
+              className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>
+              Renvoyer l'email de vérification
+            </button>
+            {resendMsg && <p className="text-xs mt-2" style={{ color: t.greenText }}>{resendMsg}</p>}
+
+            <div className="mt-6 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+              <button onClick={() => { setMode('login'); setError(''); setRegistrationDone(false); setResendMsg(''); }}
+                className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>
+                Retour à la connexion
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (mode === 'login') {
     return (
@@ -94,6 +230,12 @@ export default function LoginPage() {
                 className="w-full px-4 py-3 rounded-[14px] focus:outline-none text-sm"
                 style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }}
               />
+              <div className="text-right">
+                <button type="button" onClick={() => { setMode('forgot'); setError(''); }}
+                  className="text-xs hover:underline" style={{ color: t.accent }}>
+                  Mot de passe oublié ?
+                </button>
+              </div>
               {error && <p className="text-sm" style={{ color: colors.orange }}>{error}</p>}
               <button
                 type="submit" disabled={loading}
@@ -146,12 +288,12 @@ export default function LoginPage() {
                 className="w-full p-4 rounded-[14px] text-left transition-colors"
                 style={{ border: `2px solid ${t.accent}` }}
               >
-                <span className="text-lg">🏪</span>
+                <span className="text-lg">&#127978;</span>
                 <h3 className="font-semibold mt-1" style={{ color: t.text1 }}>Gestionnaire</h3>
                 <p className="text-xs" style={{ color: t.text2 }}>Gérez votre commerce, vos livreurs et vos commandes</p>
               </button>
               <div className="w-full p-4 rounded-[14px] opacity-50 cursor-not-allowed" style={{ border: `1px solid ${t.border}` }}>
-                <span className="text-lg">🚗</span>
+                <span className="text-lg">&#128663;</span>
                 <h3 className="font-semibold mt-1" style={{ color: t.text1 }}>Livreur</h3>
                 <p className="text-xs" style={{ color: t.text2 }}>Contactez votre gestionnaire pour obtenir vos identifiants</p>
               </div>
@@ -175,7 +317,7 @@ export default function LoginPage() {
                     className="w-full text-sm font-medium bg-transparent focus:outline-none mt-0.5" style={{ color: t.text1 }} />
                 </div>
                 <div className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
-                  <label className="text-[9px] uppercase tracking-wide" style={{ color: t.text3 }}>Email</label>
+                  <label className="text-[9px] uppercase tracking-wide" style={{ color: t.text3 }}>Email *</label>
                   <input type="email" placeholder="email@exemple.com" value={regForm.email}
                     onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                     className="w-full text-sm font-medium bg-transparent focus:outline-none mt-0.5" style={{ color: t.text1 }} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
@@ -23,7 +23,8 @@ async function customerRequest(method, path, body, token) {
 
 export default function CustomerPage() {
   const { businessId } = useParams();
-  const { t, isDark } = useTheme();
+  const [searchParams] = useSearchParams();
+  const { t, isDark, toggleTheme } = useTheme();
   const [customer, setCustomer] = useState(null);
   const [token, setToken] = useState(null);
   const [view, setView] = useState('auth');
@@ -41,7 +42,49 @@ export default function CustomerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Forgot password
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotMsg, setForgotMsg] = useState('');
+  // Reset password (from email link)
+  const [resetMode, setResetMode] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [resetForm, setResetForm] = useState({ password: '', confirm: '' });
+  const [resetMsg, setResetMsg] = useState('');
+  // Registration verification
+  const [verifyNotice, setVerifyNotice] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [resendMsg, setResendMsg] = useState('');
+  // Profile settings
+  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [profileMsg, setProfileMsg] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const [profileErr, setProfileErr] = useState('');
+  const [passwordErr, setPasswordErr] = useState('');
+
   useEffect(() => {
+    const verifyToken = searchParams.get('verify');
+    const resetT = searchParams.get('reset');
+
+    if (verifyToken) {
+      customerRequest('GET', `/customers/verify-email/${verifyToken}`)
+        .then(data => {
+          setToken(data.token);
+          setCustomer(data.customer);
+          localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
+          setView('home');
+        })
+        .catch(() => { setView('auth'); });
+      return;
+    }
+
+    if (resetT) {
+      setResetMode(true);
+      setResetToken(resetT);
+      return;
+    }
+
     const saved = localStorage.getItem(`foodly_customer_${businessId}`);
     if (saved) {
       try {
@@ -54,10 +97,14 @@ export default function CustomerPage() {
   }, [businessId]);
 
   useEffect(() => {
-    if (token) {
-      loadCustomerData();
-    }
+    if (token) loadCustomerData();
   }, [token]);
+
+  useEffect(() => {
+    if (customer) {
+      setProfileForm({ firstName: customer.firstName || '', lastName: customer.lastName || '', phone: customer.phone || '' });
+    }
+  }, [customer]);
 
   const loadCustomerData = async () => {
     try {
@@ -72,9 +119,7 @@ export default function CustomerPage() {
       setOrders(ordersList);
       setMenu(menuData);
     } catch (err) {
-      if (err.message.includes('Token') || err.message.includes('401')) {
-        logout();
-      }
+      if (err.message.includes('Token') || err.message.includes('401')) logout();
     }
   };
 
@@ -86,20 +131,83 @@ export default function CustomerPage() {
       setCustomer(data.customer);
       localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
       setView('home');
-    } catch (err) { alert(err.message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      if (err.message.includes('vérifier votre adresse email')) {
+        setVerifyNotice(true);
+        setVerifyEmail(loginForm.email);
+      } else {
+        alert(err.message);
+      }
+    } finally { setLoading(false); }
   };
 
   const handleRegister = async () => {
     setLoading(true);
     try {
-      const data = await customerRequest('POST', '/customers/register', { businessId, ...registerForm });
-      setToken(data.token);
-      setCustomer(data.customer);
-      localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
-      setView('home');
+      await customerRequest('POST', '/customers/register', { businessId, ...registerForm });
+      setVerifyNotice(true);
+      setVerifyEmail(registerForm.email);
     } catch (err) { alert(err.message); }
     finally { setLoading(false); }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotMsg('');
+    setLoading(true);
+    try {
+      const result = await customerRequest('POST', '/customers/forgot-password', { email: forgotEmail, businessId });
+      setForgotMsg(result.message);
+    } catch (err) { alert(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setResetMsg('');
+    if (resetForm.password.length < 6) return setResetMsg('6 caractères minimum');
+    if (resetForm.password !== resetForm.confirm) return setResetMsg('Les mots de passe ne correspondent pas');
+    setLoading(true);
+    try {
+      await customerRequest('POST', '/customers/reset-password', { token: resetToken, password: resetForm.password });
+      setResetMsg('Mot de passe modifié ! Vous pouvez vous connecter.');
+      setTimeout(() => { setResetMode(false); setResetToken(''); }, 2000);
+    } catch (err) { setResetMsg(err.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleResendVerification = async () => {
+    setResendMsg('');
+    try {
+      const result = await customerRequest('POST', '/customers/resend-verification', { email: verifyEmail, businessId });
+      setResendMsg(result.message);
+    } catch (err) { setResendMsg(err.message); }
+  };
+
+  const handleProfileSave = async () => {
+    setProfileErr(''); setProfileMsg('');
+    if (!profileForm.firstName?.trim() || !profileForm.lastName?.trim()) return setProfileErr('Prénom et nom requis');
+    try {
+      const updated = await customerRequest('PATCH', '/customers/me/profile', profileForm, token);
+      setCustomer(updated);
+      localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify({ token, customer: updated }));
+      setProfileMsg('Profil mis à jour');
+    } catch (err) { setProfileErr(err.message); }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordErr(''); setPasswordMsg('');
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) return setPasswordErr('Tous les champs sont requis');
+    if (passwordForm.newPassword.length < 6) return setPasswordErr('6 caractères minimum');
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) return setPasswordErr('Les mots de passe ne correspondent pas');
+    try {
+      await customerRequest('PATCH', '/customers/me/password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      }, token);
+      setPasswordMsg('Mot de passe modifié');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) { setPasswordErr(err.message); }
   };
 
   const logout = () => {
@@ -174,7 +282,103 @@ export default function CustomerPage() {
     ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)`
     : 'linear-gradient(160deg, #1C8275, #0D5650)';
 
+  const inputStyle = { backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 };
+
+  // Reset password view (from email link)
+  if (resetMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
+        <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
+            <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Nouveau mot de passe</h2>
+          </div>
+          <form onSubmit={handleResetPassword} className="space-y-3">
+            <input type="password" placeholder="Nouveau mot de passe (6 car. min)" value={resetForm.password}
+              onChange={e => setResetForm({ ...resetForm, password: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+            <input type="password" placeholder="Confirmer" value={resetForm.confirm}
+              onChange={e => setResetForm({ ...resetForm, confirm: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+            {resetMsg && <p className="text-xs text-center" style={{ color: resetMsg.includes('modifié') ? t.greenText : colors.orange }}>{resetMsg}</p>}
+            <button type="submit" disabled={loading}
+              className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: t.accent, color: '#fff' }}>
+              {loading ? 'Modification...' : 'Modifier'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Verify notice view
+  if (verifyNotice) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
+        <div className="rounded-[14px] shadow-sm w-full max-w-md p-8 text-center" style={{ backgroundColor: t.cardBg }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: t.accentBg, color: t.accent }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: t.text1 }}>Vérifiez votre email</h2>
+          <p className="text-sm mb-4" style={{ color: t.text2 }}>Un email de confirmation a été envoyé à <strong>{verifyEmail}</strong>. Cliquez sur le lien pour activer votre compte.</p>
+          <button onClick={handleResendVerification} className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>
+            Renvoyer l'email
+          </button>
+          {resendMsg && <p className="text-xs mt-2" style={{ color: t.greenText }}>{resendMsg}</p>}
+          <div className="mt-6 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+            <button onClick={() => { setVerifyNotice(false); setResendMsg(''); }}
+              className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>
+              Retour à la connexion
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'auth') {
+    // Forgot password sub-view
+    if (forgotMode) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
+          <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
+              <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Mot de passe oublié</h2>
+              <p className="text-sm mt-1" style={{ color: t.text2 }}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
+            </div>
+            {forgotMsg ? (
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>&#10003;</div>
+                <p className="text-sm mb-4" style={{ color: t.text1 }}>{forgotMsg}</p>
+                <button onClick={() => { setForgotMode(false); setForgotMsg(''); setForgotEmail(''); }}
+                  className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>Retour à la connexion</button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-3">
+                <input type="email" placeholder="Votre adresse email" value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                <button type="submit" disabled={loading || !forgotEmail}
+                  className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: t.accent, color: '#fff' }}>
+                  {loading ? 'Envoi...' : 'Envoyer le lien'}
+                </button>
+              </form>
+            )}
+            <p className="text-center text-sm mt-4">
+              <button onClick={() => { setForgotMode(false); setForgotMsg(''); }}
+                className="font-semibold hover:underline" style={{ color: t.accent }}>Retour</button>
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
@@ -201,10 +405,15 @@ export default function CustomerPage() {
             <div className="space-y-3">
               <input type="email" placeholder="Email" value={loginForm.email}
                 onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               <input type="password" placeholder="Mot de passe" value={loginForm.password}
                 onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+              <div className="text-right">
+                <button onClick={() => setForgotMode(true)} className="text-xs hover:underline" style={{ color: t.accent }}>
+                  Mot de passe oublié ?
+                </button>
+              </div>
               <button onClick={handleLogin} disabled={loading}
                 className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
@@ -216,20 +425,20 @@ export default function CustomerPage() {
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Prénom *" value={registerForm.firstName}
                   onChange={e => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
                 <input placeholder="Nom *" value={registerForm.lastName}
                   onChange={e => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  className="px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               </div>
               <input type="email" placeholder="Email *" value={registerForm.email}
                 onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               <input placeholder="Téléphone" value={registerForm.phone}
                 onChange={e => setRegisterForm({ ...registerForm, phone: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               <input type="password" placeholder="Mot de passe (6 car. min) *" value={registerForm.password}
                 onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                className="w-full px-4 py-3 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               <button onClick={handleRegister} disabled={loading}
                 className="w-full py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
@@ -270,10 +479,11 @@ export default function CustomerPage() {
       <div className="max-w-3xl mx-auto px-4 py-4">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
           {[
-            { id: 'home', label: 'Accueil', icon: '🏠' },
-            { id: 'order', label: 'Commander', icon: '🛒' },
-            { id: 'loyalty', label: 'Fidélité', icon: '💳' },
-            { id: 'history', label: 'Historique', icon: '📋' },
+            { id: 'home', label: 'Accueil', icon: '&#127968;' },
+            { id: 'order', label: 'Commander', icon: '&#128722;' },
+            { id: 'loyalty', label: 'Fidélité', icon: '&#128179;' },
+            { id: 'history', label: 'Historique', icon: '&#128203;' },
+            { id: 'settings', label: 'Paramètres', icon: '&#9881;' },
           ].map(tab => (
             <button key={tab.id} onClick={() => { setView(tab.id); if (tab.id === 'order') setOrderStep('menu'); }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
@@ -281,7 +491,7 @@ export default function CustomerPage() {
                 ? { backgroundColor: t.accent, color: '#fff' }
                 : { backgroundColor: t.bg, color: t.text1 }
               }>
-              <span>{tab.icon}</span>
+              <span dangerouslySetInnerHTML={{ __html: tab.icon }} />
               <span>{tab.label}</span>
             </button>
           ))}
@@ -312,18 +522,100 @@ export default function CustomerPage() {
               <button onClick={() => { setView('order'); setOrderStep('menu'); }}
                 className="rounded-xl p-4 text-left hover:opacity-90 transition-colors"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
-                <span className="text-2xl">🛒</span>
+                <span className="text-2xl">&#128722;</span>
                 <p className="font-semibold mt-2">Passer commande</p>
                 <p className="text-xs" style={{ opacity: 0.7 }}>Parcourir le menu</p>
               </button>
               <button onClick={() => setView('loyalty')}
                 className="rounded-xl p-4 text-left transition-colors"
                 style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                <span className="text-2xl">💳</span>
+                <span className="text-2xl">&#128179;</span>
                 <p className="font-semibold mt-2" style={{ color: t.text1 }}>Ma carte de fidélité</p>
                 <p className="text-xs" style={{ color: t.text2 }}>{customer?.loyaltyPoints || 0} points disponibles</p>
               </button>
             </div>
+          </div>
+        )}
+
+        {view === 'settings' && (
+          <div className="space-y-4">
+            {/* Theme toggle */}
+            <div className="rounded-2xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: t.text2 }}>Apparence</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm" style={{ color: t.text1 }}>Mode sombre</p>
+                  <p className="text-xs" style={{ color: t.text2 }}>{isDark ? 'Activé' : 'Désactivé'}</p>
+                </div>
+                <button onClick={toggleTheme}
+                  className="relative w-12 h-7 rounded-full transition-colors"
+                  style={{ backgroundColor: isDark ? t.accent : t.text3 }}>
+                  <span className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow-sm"
+                    style={{ left: isDark ? '22px' : '2px' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Profile */}
+            <div className="rounded-2xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: t.text2 }}>Profil</h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Prénom</label>
+                    <input value={profileForm.firstName} onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Nom</label>
+                    <input value={profileForm.lastName} onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Téléphone</label>
+                  <input value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                </div>
+                {profileErr && <p className="text-xs" style={{ color: colors.orange }}>{profileErr}</p>}
+                {profileMsg && <p className="text-xs" style={{ color: t.greenText }}>{profileMsg}</p>}
+                <button onClick={handleProfileSave}
+                  className="px-5 py-2.5 rounded-lg text-sm font-semibold"
+                  style={{ backgroundColor: t.accent, color: '#fff' }}>
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="rounded-2xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: t.text2 }}>Mot de passe</h3>
+              <div className="space-y-3">
+                <input type="password" placeholder="Mot de passe actuel" value={passwordForm.currentPassword}
+                  onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                <input type="password" placeholder="Nouveau mot de passe (6 car. min)" value={passwordForm.newPassword}
+                  onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                <input type="password" placeholder="Confirmer" value={passwordForm.confirmPassword}
+                  onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                {passwordErr && <p className="text-xs" style={{ color: colors.orange }}>{passwordErr}</p>}
+                {passwordMsg && <p className="text-xs" style={{ color: t.greenText }}>{passwordMsg}</p>}
+                <button onClick={handlePasswordChange}
+                  className="px-5 py-2.5 rounded-lg text-sm font-semibold"
+                  style={{ backgroundColor: t.accent, color: '#fff' }}>
+                  Modifier le mot de passe
+                </button>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button onClick={logout}
+              className="w-full py-3 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: isDark ? '#3B1C1C' : '#FEF2F2', color: '#EF4444' }}>
+              Se déconnecter
+            </button>
           </div>
         )}
 
@@ -375,7 +667,7 @@ export default function CustomerPage() {
                         <p className="text-sm" style={{ color: t.text1 }}>{txn.description}</p>
                         <p className="text-xs" style={{ color: t.text2 }}>{new Date(txn.created_at).toLocaleDateString('fr-FR')}</p>
                       </div>
-                      <span className={`font-mono text-sm font-bold ${txn.points > 0 ? 'text-go' : 'text-stop'}`}>
+                      <span className="font-mono text-sm font-bold" style={{ color: txn.points > 0 ? t.greenText : '#EF4444' }}>
                         {txn.points > 0 ? '+' : ''}{txn.points}
                       </span>
                     </div>
@@ -397,8 +689,8 @@ export default function CustomerPage() {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-sm" style={{ color: t.text1 }}>{parseFloat(o.total).toFixed(2)} €</span>
-                  <p className={`text-xs mt-0.5 ${o.status === 'delivered' ? 'text-go' : o.status === 'cancelled' ? 'text-stop' : ''}`}
-                    style={o.status !== 'delivered' && o.status !== 'cancelled' ? { color: t.accent } : undefined}>
+                  <p className="text-xs mt-0.5"
+                    style={{ color: o.status === 'delivered' ? t.greenText : o.status === 'cancelled' ? '#EF4444' : t.accent }}>
                     {statusLabels[o.status] || o.status}
                   </p>
                 </div>
@@ -507,7 +799,7 @@ export default function CustomerPage() {
               <div className="mt-3 pt-3 space-y-1 text-sm" style={{ borderTop: `1px solid ${t.border}` }}>
                 <div className="flex justify-between"><span style={{ color: t.text2 }}>Sous-total</span><span className="font-mono" style={{ color: t.text1 }}>{subtotal.toFixed(2)} €</span></div>
                 <div className="flex justify-between"><span style={{ color: t.text2 }}>Livraison</span><span className="font-mono" style={{ color: t.text1 }}>{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
-                {discount > 0 && <div className="flex justify-between text-go"><span>Remise</span><span className="font-mono">-{discount.toFixed(2)} €</span></div>}
+                {discount > 0 && <div className="flex justify-between" style={{ color: t.greenText }}><span>Remise</span><span className="font-mono">-{discount.toFixed(2)} €</span></div>}
                 <div className="flex justify-between font-bold pt-2" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
                   <span>Total</span><span className="font-mono" style={{ color: t.accent }}>{total.toFixed(2)} €</span>
                 </div>
@@ -519,10 +811,10 @@ export default function CustomerPage() {
               <div className="space-y-3">
                 <input placeholder="Adresse de livraison *" value={orderForm.deliveryAddress}
                   onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
                 <textarea placeholder="Notes (étage, code...)" value={orderForm.deliveryNotes}
                   onChange={e => setOrderForm({ ...orderForm, deliveryNotes: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} rows={2} />
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} rows={2} />
                 <div>
                   <p className="text-xs mb-2" style={{ color: t.text2 }}>Mode de paiement</p>
                   <div className="flex gap-2">
@@ -541,7 +833,7 @@ export default function CustomerPage() {
                 <div className="flex gap-2">
                   <input placeholder="Code promo" value={orderForm.promoCode}
                     onChange={e => setOrderForm({ ...orderForm, promoCode: e.target.value })}
-                    className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none text-sm font-mono uppercase" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                    className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none text-sm font-mono uppercase" style={inputStyle} />
                   <button onClick={validatePromo} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.border, color: t.text1 }}>Appliquer</button>
                 </div>
                 {promoResult && (
@@ -553,7 +845,8 @@ export default function CustomerPage() {
             </div>
 
             <button onClick={submitOrder} disabled={submitting || cart.length === 0}
-              className="w-full py-3 bg-go text-paper rounded-xl font-semibold hover:bg-go/90 disabled:opacity-50 transition-colors">
+              className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: t.accent, color: '#fff' }}>
               {submitting ? 'Envoi...' : `Commander · ${total.toFixed(2)} €`}
             </button>
           </div>
@@ -562,7 +855,7 @@ export default function CustomerPage() {
         {view === 'order' && orderStep === 'confirmed' && confirmation && (
           <div className="text-center py-12">
             <div className="rounded-2xl p-8 max-w-md mx-auto" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <div className="w-16 h-16 rounded-full bg-go/20 flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4" style={{ backgroundColor: t.greenBg, color: t.greenText }}>&#10003;</div>
               <h2 className="text-xl font-heading mb-2" style={{ color: t.text1 }}>Commande confirmée !</h2>
               <p className="text-3xl font-mono font-bold mb-4" style={{ color: t.accent }}>{confirmation.orderNumber}</p>
               <p className="text-sm mb-6" style={{ color: t.text2 }}>Des points de fidélité ont été ajoutés à votre compte !</p>

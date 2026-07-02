@@ -21,10 +21,22 @@ async function request(method, path, body) {
   return res.json();
 }
 
+async function uploadFile(path, formData) {
+  const headers = {};
+  if (_token) headers['Authorization'] = `Bearer ${_token}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: formData });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Erreur ${res.status}`);
+  }
+  return res.json();
+}
+
 export const api = {
   get: (path) => request('GET', path),
   post: (path, body) => request('POST', path, body),
   put: (path, body) => request('PUT', path, body),
   patch: (path, body) => request('PATCH', path, body),
   delete: (path) => request('DELETE', path),
+  upload: (path, formData) => uploadFile(path, formData),
 };
