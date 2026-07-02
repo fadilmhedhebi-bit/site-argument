@@ -3,8 +3,11 @@ import { useTheme } from '../ThemeContext';
 import CommandesTab from './tabs/CommandesTab';
 import TourneesTab from './tabs/TourneesTab';
 import StatsTab from './tabs/StatsTab';
-import StockTab from './tabs/StockTab';
+import MenuTab from './tabs/MenuTab';
 import IngredientsTab from './tabs/IngredientsTab';
+import TablesTab from './tabs/TablesTab';
+import ReservationsTab from './tabs/ReservationsTab';
+import CaisseTab from './tabs/CaisseTab';
 import ClientsTab from './tabs/ClientsTab';
 import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
@@ -13,8 +16,11 @@ const tabs = [
   { id: 'commandes', label: 'Commandes', icon: '🛒' },
   { id: 'tournees', label: 'Tournées', icon: '🚗' },
   { id: 'stats', label: 'Stats', icon: '📊' },
-  { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'menu', label: 'Menu', icon: '🍽️' },
   { id: 'ingredients', label: 'Ingrédients', icon: '🧂' },
+  { id: 'tables', label: 'Tables', icon: '🪑' },
+  { id: 'reservations', label: 'Réservations', icon: '📅' },
+  { id: 'caisse', label: 'Caisse', icon: '💰' },
   { id: 'clients', label: 'Clients', icon: '💳' },
   { id: 'equipe', label: 'Équipe', icon: '👥' },
   { id: 'historique', label: 'Historique', icon: '📒' },
@@ -24,8 +30,11 @@ const components = {
   commandes: CommandesTab,
   tournees: TourneesTab,
   stats: StatsTab,
-  stock: StockTab,
+  menu: MenuTab,
   ingredients: IngredientsTab,
+  tables: TablesTab,
+  reservations: ReservationsTab,
+  caisse: CaisseTab,
   clients: ClientsTab,
   equipe: EquipeTab,
   historique: HistoriqueTab,
@@ -59,16 +68,16 @@ export default function DashboardPage() {
       <TabComponent />
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden" style={{ backgroundColor: t.navBg, borderTop: `1px solid ${t.border}` }}>
-        <div className="flex justify-around items-center h-14">
+        <div className="flex overflow-x-auto items-center h-14">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center w-full h-full text-xl transition-colors ${
+              className={`flex flex-col items-center justify-center min-w-[3rem] h-full text-xl transition-colors ${
                 activeTab === tab.id ? 'grayscale-0' : 'grayscale opacity-40'
               }`}
             >
-              <span>{tab.icon}</span>
+              <span className="text-base">{tab.icon}</span>
             </button>
           ))}
         </div>

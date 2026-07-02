@@ -1,8 +1,26 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
+
+const productUpload = multer({
+  storage: multer.diskStorage({
+    destination: path.join(__dirname, '../../uploads/products'),
+    filename: (_req, file, cb) => {
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${path.extname(file.originalname)}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Format d\'image non supporté'));
+  },
+});
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -283,6 +301,25 @@ router.delete('/:id', authenticate, requireRole('manager'), async (req, res) => 
   } catch (err) {
     console.error('Delete product error:', err);
     res.status(500).json({ error: 'Erreur lors de la suppression du produit' });
+  }
+});
+
+// POST /api/products/:id/image - Upload product image
+router.post('/:id/image', authenticate, requireRole('manager'), productUpload.single('image'), async (req, res) => {
+  if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
+  if (!req.file) return res.status(400).json({ error: 'Image requise' });
+
+  try {
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+    const result = await pool.query(
+      'UPDATE products SET image_url = $1, updated_at = NOW() WHERE id = $2 AND business_id = $3 RETURNING *',
+      [imageUrl, req.params.id, req.user.businessId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Produit non trouvé' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Upload product image error:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'upload de l\'image' });
   }
 });
 

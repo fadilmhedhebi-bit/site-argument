@@ -13,6 +13,7 @@ import SuiviCommandePage from './pages/SuiviCommandePage';
 import SettingsPage from './pages/SettingsPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ReservationPublicPage from './pages/ReservationPublicPage';
 
 function ProtectedRoute({ children, roles }) {
   const user = useAuthStore((s) => s.user);
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/commander/:businessId" element={<ClientCommandePage />} />
         <Route path="/client/:businessId" element={<CustomerPage />} />
+        <Route path="/reservation/:reservationNumber" element={<ReservationPublicPage />} />
         <Route path="/suivi" element={<SuiviCommandePage />} />
         <Route path="/suivi/:orderNumber" element={<SuiviCommandePage />} />
 

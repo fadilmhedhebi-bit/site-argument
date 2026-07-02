@@ -381,6 +381,94 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 UPDATE customers SET email_verified = true WHERE email_verified = false AND verification_token IS NULL;
 
 -- ============================================================
+-- RESTAURANT TABLES (plan de table)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS restaurant_tables (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  table_number INT NOT NULL,
+  capacity INT NOT NULL DEFAULT 2,
+  status VARCHAR(20) DEFAULT 'available'
+    CHECK (status IN ('available', 'occupied', 'reserved')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(business_id, table_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_tables_business ON restaurant_tables(business_id);
+
+-- ============================================================
+-- RESERVATIONS
+-- ============================================================
+
+CREATE SEQUENCE IF NOT EXISTS reservation_number_seq START 5001;
+
+CREATE TABLE IF NOT EXISTS reservations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  reservation_number VARCHAR(20) UNIQUE NOT NULL,
+  table_id UUID REFERENCES restaurant_tables(id) ON DELETE SET NULL,
+  customer_last_name VARCHAR(100) NOT NULL,
+  customer_first_name VARCHAR(100) NOT NULL,
+  customer_phone VARCHAR(20) NOT NULL,
+  reservation_date DATE NOT NULL,
+  reservation_time TIME NOT NULL,
+  party_size INT NOT NULL DEFAULT 1,
+  status VARCHAR(20) DEFAULT 'confirmed'
+    CHECK (status IN ('confirmed', 'cancelled', 'completed', 'no_show')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reservations_business ON reservations(business_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(business_id, reservation_date);
+CREATE INDEX IF NOT EXISTS idx_reservations_number ON reservations(reservation_number);
+
+-- ============================================================
+-- CASH REGISTER (caisse)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS cash_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  opened_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  closed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  opening_float DECIMAL(10,2) NOT NULL DEFAULT 0,
+  closing_amount DECIMAL(10,2),
+  expected_amount DECIMAL(10,2),
+  difference DECIMAL(10,2),
+  total_cash DECIMAL(10,2) DEFAULT 0,
+  total_card DECIMAL(10,2) DEFAULT 0,
+  total_meal_voucher DECIMAL(10,2) DEFAULT 0,
+  total_sales DECIMAL(10,2) DEFAULT 0,
+  transaction_count INT DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'open'
+    CHECK (status IN ('open', 'closed')),
+  notes TEXT,
+  opened_at TIMESTAMPTZ DEFAULT NOW(),
+  closed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_cash_sessions_business ON cash_sessions(business_id);
+CREATE INDEX IF NOT EXISTS idx_cash_sessions_status ON cash_sessions(business_id, status);
+
+CREATE TABLE IF NOT EXISTS cash_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES cash_sessions(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('sale', 'refund', 'expense', 'deposit', 'withdrawal')),
+  payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('cash', 'card', 'meal_voucher')),
+  amount DECIMAL(10,2) NOT NULL,
+  label VARCHAR(255),
+  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_session ON cash_transactions(session_id);
+
+-- ============================================================
 -- HELPER: generate order numbers
 -- ============================================================
 
