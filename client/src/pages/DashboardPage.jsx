@@ -14,16 +14,16 @@ import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
 
 const modules = [
-  { id: 'commandes', label: 'Commandes', icon: '🛒', desc: 'Gérer les commandes' },
-  { id: 'tournees', label: 'Tournées', icon: '🚗', desc: 'Planifier les livraisons' },
-  { id: 'stats', label: 'Statistiques', icon: '📊', desc: 'Tableaux de bord' },
-  { id: 'menu', label: 'Menu', icon: '🍽️', desc: 'Carte & produits' },
-  { id: 'ingredients', label: 'Ingrédients', icon: '🧂', desc: 'Matières premières' },
-  { id: 'tables', label: 'Plan de table', icon: '🪑', desc: 'Gestion des tables' },
   { id: 'reservations', label: 'Réservations', icon: '📅', desc: 'Prises de réservation' },
+  { id: 'commandes', label: 'Commandes', icon: '🛒', desc: 'Gérer les commandes' },
+  { id: 'tables', label: 'Plan de table', icon: '🪑', desc: 'Gestion des tables' },
   { id: 'caisse', label: 'Caisse', icon: '💰', desc: 'Encaissements & comptes' },
-  { id: 'clients', label: 'Clients', icon: '💳', desc: 'Comptes & fidélité' },
+  { id: 'menu', label: 'Menu', icon: '🍽️', desc: 'Carte & produits' },
+  { id: 'stats', label: 'Statistiques', icon: '📊', desc: 'Tableaux de bord' },
   { id: 'equipe', label: 'Équipe', icon: '👥', desc: 'Gestion du personnel' },
+  { id: 'tournees', label: 'Tournées', icon: '🚗', desc: 'Planifier les livraisons' },
+  { id: 'clients', label: 'Clients', icon: '💳', desc: 'Comptes & fidélité' },
+  { id: 'ingredients', label: 'Ingrédients', icon: '🧂', desc: 'Matières premières' },
   { id: 'historique', label: 'Historique', icon: '📒', desc: 'Journal des commandes' },
 ];
 
