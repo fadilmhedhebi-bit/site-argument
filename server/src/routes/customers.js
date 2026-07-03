@@ -7,6 +7,7 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 import { sendCustomerVerificationEmail, sendCustomerPasswordResetEmail } from '../utils/email.js';
 
 const router = Router();
+const SMTP_CONFIGURED = !!process.env.SMTP_HOST;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -58,8 +59,9 @@ router.post('/register', async (req, res) => {
     if (existing.rows.length) return res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const autoVerify = !SMTP_CONFIGURED;
+    const verificationToken = autoVerify ? null : crypto.randomBytes(32).toString('hex');
+    const verificationExpires = autoVerify ? null : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const loyaltyConfig = await pool.query(
       'SELECT welcome_points FROM loyalty_config WHERE business_id = $1 AND is_active = true',
@@ -69,8 +71,8 @@ router.post('/register', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO customers (business_id, email, password_hash, first_name, last_name, phone, loyalty_points, email_verified, verification_token, verification_expires)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8,$9) RETURNING id, business_id, email, first_name, last_name, phone, loyalty_points, created_at`,
-      [businessId, email.trim().toLowerCase(), passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, welcomePoints, verificationToken, verificationExpires]
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, business_id, email, first_name, last_name, phone, loyalty_points, created_at`,
+      [businessId, email.trim().toLowerCase(), passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, welcomePoints, autoVerify, verificationToken, verificationExpires]
     );
 
     const customer = result.rows[0];
@@ -80,6 +82,22 @@ router.post('/register', async (req, res) => {
         `INSERT INTO loyalty_transactions (customer_id, type, points, description) VALUES ($1, 'bonus', $2, 'Points de bienvenue')`,
         [customer.id, welcomePoints]
       );
+    }
+
+    if (autoVerify) {
+      const biz = await pool.query('SELECT name FROM businesses WHERE id = $1', [businessId]);
+      const token = generateCustomerToken(customer);
+      return res.status(201).json({
+        message: 'Compte créé avec succès !',
+        token,
+        customer: {
+          id: customer.id, email: customer.email, firstName: customer.first_name,
+          lastName: customer.last_name, phone: customer.phone,
+          loyaltyPoints: customer.loyalty_points, totalOrders: 0,
+          totalSpent: 0, businessId: customer.business_id,
+          businessName: biz.rows[0]?.name,
+        },
+      });
     }
 
     sendCustomerVerificationEmail(email.trim(), verificationToken, firstName.trim(), businessId).catch(console.error);

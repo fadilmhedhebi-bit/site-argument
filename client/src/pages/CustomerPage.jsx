@@ -144,9 +144,16 @@ export default function CustomerPage() {
   const handleRegister = async () => {
     setLoading(true);
     try {
-      await customerRequest('POST', '/customers/register', { businessId, ...registerForm });
-      setVerifyNotice(true);
-      setVerifyEmail(registerForm.email);
+      const data = await customerRequest('POST', '/customers/register', { businessId, ...registerForm });
+      if (data.token && data.customer) {
+        setToken(data.token);
+        setCustomer(data.customer);
+        localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
+        setView('home');
+      } else {
+        setVerifyNotice(true);
+        setVerifyEmail(registerForm.email);
+      }
     } catch (err) { alert(err.message); }
     finally { setLoading(false); }
   };
@@ -515,6 +522,28 @@ export default function CustomerPage() {
               <div className="rounded-xl p-4 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <p className="text-xs" style={{ color: t.text2 }}>Commandes</p>
                 <p className="text-2xl font-heading mt-1" style={{ color: t.text1 }}>{customer?.totalOrders || 0}</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Entrées', icon: '🥗' },
+                  { label: 'Tapas', icon: '🫒' },
+                  { label: 'Plats', icon: '🍖' },
+                  { label: 'Desserts', icon: '🍰' },
+                  { label: 'Cocktails', icon: '🍸' },
+                  { label: 'Mocktails', icon: '🧃' },
+                  { label: 'Softs', icon: '🥤' },
+                ].map(cat => (
+                  <button key={cat.label} onClick={() => { setView('order'); setOrderStep('menu'); }}
+                    className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                    <span className="text-3xl mb-2">{cat.icon}</span>
+                    <span className="text-xs font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -8,6 +8,7 @@ export default function EquipeTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [created, setCreated] = useState(null);
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [copied, setCopied] = useState(false);
   const { user, updateUser, setToken } = useAuthStore();
   const { t } = useTheme();
 
@@ -89,9 +90,15 @@ export default function EquipeTab() {
               <input readOnly value={`${window.location.origin}/client/${user?.businessId}`}
                 className="flex-1 px-3 py-2 border rounded-lg text-xs font-mono"
                 style={{ backgroundColor: t.tabBg, borderColor: t.border, color: t.text2 }} />
-              <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/client/${user?.businessId}`); }}
-                className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={{ backgroundColor: t.accent, color: '#fff' }}>Copier</button>
+              <button onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/client/${user?.businessId}`);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="px-3 py-2 rounded-lg text-xs font-semibold min-w-[70px]"
+                style={{ backgroundColor: copied ? t.greenText : t.accent, color: '#fff' }}>
+                {copied ? 'Copié !' : 'Copier'}
+              </button>
             </div>
             <p className="text-xs" style={{ color: t.text2 }}>Espace client avec compte, fidélité et commande</p>
           </div>
