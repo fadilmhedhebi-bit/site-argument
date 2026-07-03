@@ -5,13 +5,13 @@ import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
 
 const menuCategories = [
-  { label: 'Entrées', icon: '🥗', key: 'entree' },
-  { label: 'Tapas', icon: '🫒', key: 'tapas' },
-  { label: 'Plats', icon: '🍖', key: 'plat' },
-  { label: 'Desserts', icon: '🍰', key: 'dessert' },
-  { label: 'Cocktails', icon: '🍸', key: 'cocktail' },
-  { label: 'Mocktails', icon: '🧃', key: 'mocktail' },
-  { label: 'Softs', icon: '🥤', key: 'soft' },
+  { label: 'Entrées', icon: '🥗' },
+  { label: 'Tapas', icon: '🫒' },
+  { label: 'Plats', icon: '🍖' },
+  { label: 'Desserts', icon: '🍰' },
+  { label: 'Cocktails', icon: '🍸' },
+  { label: 'Mocktails', icon: '🧃' },
+  { label: 'Softs', icon: '🥤' },
 ];
 
 export default function ClientCommandePage() {
@@ -116,7 +116,7 @@ export default function ClientCommandePage() {
               <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h2>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {menuCategories.map(cat => (
-                  <button key={cat.key} onClick={() => { setSelectedCategory(cat.key); setStep('menu'); }}
+                  <button key={cat.label} onClick={() => { setSelectedCategory(cat.label); setStep('menu'); }}
                     className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
                     style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                     <span className="text-3xl mb-2">{cat.icon}</span>
@@ -144,11 +144,7 @@ export default function ClientCommandePage() {
 
         {step === 'menu' && (() => {
           const filteredProducts = selectedCategory
-            ? menu.products.filter(p => {
-                const catName = menu.categories.find(c => c.id === p.category_id)?.name?.toLowerCase() || '';
-                const productCat = p.category_name?.toLowerCase() || catName;
-                return productCat.includes(selectedCategory);
-              })
+            ? menu.products.filter(p => p.category_name === selectedCategory)
             : menu.products;
 
           return (
@@ -164,7 +160,7 @@ export default function ClientCommandePage() {
               </button>
               {selectedCategory && (
                 <span className="text-sm font-semibold" style={{ color: t.accent }}>
-                  {menuCategories.find(c => c.key === selectedCategory)?.icon} {menuCategories.find(c => c.key === selectedCategory)?.label}
+                  {menuCategories.find(c => c.label === selectedCategory)?.icon} {selectedCategory}
                 </span>
               )}
             </div>
@@ -184,9 +180,9 @@ export default function ClientCommandePage() {
                 Tout
               </button>
               {menuCategories.map(cat => (
-                <button key={cat.key} onClick={() => setSelectedCategory(cat.key)}
+                <button key={cat.label} onClick={() => setSelectedCategory(cat.label)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                  style={selectedCategory === cat.key ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
+                  style={selectedCategory === cat.label ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
                   {cat.icon} {cat.label}
                 </button>
               ))}

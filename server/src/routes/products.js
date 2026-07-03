@@ -161,29 +161,45 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
+async function resolveCategory(businessId, { categoryId, categoryName }) {
+  if (categoryId && UUID_RE.test(categoryId)) {
+    const cat = await pool.query('SELECT id FROM product_categories WHERE id = $1 AND business_id = $2', [categoryId, businessId]);
+    return cat.rows.length ? categoryId : null;
+  }
+  if (categoryName?.trim()) {
+    const existing = await pool.query(
+      'SELECT id FROM product_categories WHERE business_id = $1 AND LOWER(name) = LOWER($2)',
+      [businessId, categoryName.trim()]
+    );
+    if (existing.rows.length) return existing.rows[0].id;
+    const created = await pool.query(
+      'INSERT INTO product_categories (business_id, name) VALUES ($1, $2) RETURNING id',
+      [businessId, categoryName.trim()]
+    );
+    return created.rows[0].id;
+  }
+  return null;
+}
+
 // POST /api/products - Créer un produit
 router.post('/', authenticate, requireRole('manager'), async (req, res) => {
-  const { name, description, price, categoryId, stockQuantity, stockAlertThreshold, imageUrl } = req.body;
+  const { name, description, price, categoryId, categoryName, stockQuantity, stockAlertThreshold, imageUrl } = req.body;
 
   if (!name?.trim()) return res.status(400).json({ error: 'Nom du produit requis' });
   if (price == null || isNaN(price) || parseFloat(price) < 0) {
     return res.status(400).json({ error: 'Prix invalide (nombre >= 0)' });
   }
-  if (categoryId && !UUID_RE.test(categoryId)) return res.status(400).json({ error: 'categoryId invalide' });
   if (stockQuantity != null && (isNaN(stockQuantity) || parseInt(stockQuantity) < 0)) {
     return res.status(400).json({ error: 'Quantité de stock invalide' });
   }
 
   try {
-    if (categoryId) {
-      const cat = await pool.query('SELECT id FROM product_categories WHERE id = $1 AND business_id = $2', [categoryId, req.user.businessId]);
-      if (!cat.rows.length) return res.status(400).json({ error: 'Catégorie non trouvée' });
-    }
+    const resolvedCatId = await resolveCategory(req.user.businessId, { categoryId, categoryName });
 
     const result = await pool.query(
       `INSERT INTO products (business_id, category_id, name, description, price, stock_quantity, stock_alert_threshold, image_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [req.user.businessId, categoryId || null, name.trim(), description?.trim() || null,
+      [req.user.businessId, resolvedCatId, name.trim(), description?.trim() || null,
        parseFloat(price), parseInt(stockQuantity) || 0, parseInt(stockAlertThreshold) || 5, imageUrl?.trim() || null]
     );
     res.status(201).json(result.rows[0]);
@@ -197,7 +213,7 @@ router.post('/', authenticate, requireRole('manager'), async (req, res) => {
 router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
-  const { name, description, price, categoryId, stockQuantity, stockAlertThreshold, isAvailable, imageUrl } = req.body;
+  const { name, description, price, categoryId, categoryName, stockQuantity, stockAlertThreshold, isAvailable, imageUrl } = req.body;
 
   if (name !== undefined && !name?.trim()) return res.status(400).json({ error: 'Nom du produit ne peut pas être vide' });
   if (price !== undefined && (isNaN(price) || parseFloat(price) < 0)) return res.status(400).json({ error: 'Prix invalide' });
@@ -206,11 +222,13 @@ router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
     const existing = await pool.query('SELECT id FROM products WHERE id = $1 AND business_id = $2', [req.params.id, req.user.businessId]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Produit non trouvé' });
 
+    const resolvedCatId = await resolveCategory(req.user.businessId, { categoryId, categoryName });
+
     const result = await pool.query(
       `UPDATE products SET name=$1, description=$2, price=$3, category_id=$4, stock_quantity=$5,
        stock_alert_threshold=$6, is_available=$7, image_url=$8, updated_at=NOW()
        WHERE id=$9 AND business_id=$10 RETURNING *`,
-      [name?.trim(), description?.trim() ?? null, parseFloat(price), categoryId || null,
+      [name?.trim(), description?.trim() ?? null, parseFloat(price), resolvedCatId,
        parseInt(stockQuantity) ?? 0, parseInt(stockAlertThreshold) || 5,
        isAvailable !== undefined ? isAvailable : true, imageUrl?.trim() || null,
        req.params.id, req.user.businessId]

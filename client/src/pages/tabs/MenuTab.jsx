@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
 
+const NATURES = [
+  { value: 'Entrées', icon: '🥗' },
+  { value: 'Tapas', icon: '🫒' },
+  { value: 'Plats', icon: '🍖' },
+  { value: 'Desserts', icon: '🍰' },
+  { value: 'Cocktails', icon: '🍸' },
+  { value: 'Mocktails', icon: '🧃' },
+  { value: 'Softs', icon: '🥤' },
+];
+
 export default function MenuTab() {
   const { t } = useTheme();
   const [products, setProducts] = useState([]);
@@ -11,7 +21,7 @@ export default function MenuTab() {
   const [filterCat, setFilterCat] = useState('');
   const [showProduct, setShowProduct] = useState(null);
   const [showPromo, setShowPromo] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryId: '' });
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryName: '' });
   const [promoForm, setPromoForm] = useState({ code: '', type: 'percentage', value: '', minOrder: '', maxUses: '', expiresAt: '' });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -29,7 +39,7 @@ export default function MenuTab() {
 
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCat && p.category_id !== filterCat) return false;
+    if (filterCat && p.category_name !== filterCat) return false;
     return true;
   });
 
@@ -47,7 +57,7 @@ export default function MenuTab() {
         name: productForm.name,
         description: productForm.description,
         price: parseFloat(productForm.price),
-        categoryId: productForm.categoryId || undefined,
+        categoryName: productForm.categoryName || undefined,
         stockQuantity: 999,
         stockAlertThreshold: 0,
       };
@@ -82,7 +92,7 @@ export default function MenuTab() {
 
   const toggleAvailable = async (p) => {
     try {
-      await api.put(`/products/${p.id}`, { ...p, categoryId: p.category_id, isAvailable: !p.is_available });
+      await api.put(`/products/${p.id}`, { ...p, categoryName: p.category_name || '', isAvailable: !p.is_available });
       load();
     } catch (err) { alert(err.message); }
   };
@@ -110,14 +120,14 @@ export default function MenuTab() {
   const deletePromo = async (id) => { if (!confirm('Supprimer ?')) return; try { await api.delete(`/promos/${id}`); load(); } catch (err) { alert(err.message); } };
 
   const openEditProduct = (p) => {
-    setProductForm({ name: p.name, description: p.description || '', price: p.price, categoryId: p.category_id || '' });
+    setProductForm({ name: p.name, description: p.description || '', price: p.price, categoryName: p.category_name || '' });
     setImageFile(null);
     setImagePreview(p.image_url ? `${(import.meta.env.VITE_API_URL || '')}${p.image_url}` : null);
     setShowProduct(p);
   };
 
   const openNewProduct = () => {
-    setProductForm({ name: '', description: '', price: '', categoryId: '' });
+    setProductForm({ name: '', description: '', price: '', categoryName: '' });
     setImageFile(null);
     setImagePreview(null);
     setShowProduct('new');
@@ -149,7 +159,7 @@ export default function MenuTab() {
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
             className="px-4 py-2 rounded-lg text-sm focus:outline-none" style={inputStyle}>
             <option value="">Toutes catégories</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {NATURES.map(n => <option key={n.value} value={n.value}>{n.icon} {n.value}</option>)}
           </select>
         </div>
 
@@ -243,10 +253,10 @@ export default function MenuTab() {
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Prix *" type="number" step="0.01" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })}
                   className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
-                <select value={productForm.categoryId} onChange={e => setProductForm({ ...productForm, categoryId: e.target.value })}
+                <select value={productForm.categoryName} onChange={e => setProductForm({ ...productForm, categoryName: e.target.value })}
                   className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle}>
-                  <option value="">Sans catégorie</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">Catégorie *</option>
+                  {NATURES.map(n => <option key={n.value} value={n.value}>{n.icon} {n.value}</option>)}
                 </select>
               </div>
             </div>
