@@ -4,12 +4,23 @@ import { api } from '../utils/api';
 import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
 
+const menuCategories = [
+  { label: 'Entrées', icon: '🥗', key: 'entree' },
+  { label: 'Tapas', icon: '🫒', key: 'tapas' },
+  { label: 'Plats', icon: '🍖', key: 'plat' },
+  { label: 'Desserts', icon: '🍰', key: 'dessert' },
+  { label: 'Cocktails', icon: '🍸', key: 'cocktail' },
+  { label: 'Mocktails', icon: '🧃', key: 'mocktail' },
+  { label: 'Softs', icon: '🥤', key: 'soft' },
+];
+
 export default function ClientCommandePage() {
   const { businessId } = useParams();
   const { t } = useTheme();
   const [menu, setMenu] = useState({ business: null, categories: [], products: [] });
   const [cart, setCart] = useState([]);
-  const [step, setStep] = useState('menu');
+  const [step, setStep] = useState('browse');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerEmail: '',
     deliveryAddress: '', paymentMethod: 'cash', promoCode: '', deliveryNotes: '',
@@ -89,7 +100,7 @@ export default function ClientCommandePage() {
           </div>
           <div className="flex items-center gap-2">
             <a href={`/client/${businessId}`} className="text-xs hover:underline no-underline" style={{ color: t.accent }}>Mon compte</a>
-            {cart.length > 0 && step === 'menu' && (
+            {cart.length > 0 && (step === 'menu' || step === 'browse') && (
               <button onClick={() => setStep('checkout')} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.accent, color: '#fff' }}>
                 Panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
               </button>
@@ -99,75 +110,121 @@ export default function ClientCommandePage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
-        {step === 'menu' && (
-          <div className="space-y-8">
-            {menu.categories.length > 0 ? menu.categories.map(cat => {
-              const catProducts = menu.products.filter(p => p.category_id === cat.id);
-              if (catProducts.length === 0) return null;
-              return (
-                <div key={cat.id}>
-                  <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>{cat.name}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {catProducts.map(p => {
-                      const inCart = cart.find(c => c.id === p.id);
-                      return (
-                        <div key={p.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm" style={{ color: t.text1 }}>{p.name}</h3>
-                            {p.description && <p className="text-xs mt-0.5 truncate" style={{ color: t.text2 }}>{p.description}</p>}
-                            <p className="font-mono font-bold mt-1" style={{ color: t.accent }}>{parseFloat(p.price).toFixed(2)} €</p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {inCart ? (
-                              <>
-                                <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>−</button>
-                                <span className="font-mono w-6 text-center" style={{ color: t.text1 }}>{inCart.qty}</span>
-                                <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
-                              </>
-                            ) : (
-                              <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full font-bold text-lg" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {menu.products.map(p => {
-                  const inCart = cart.find(c => c.id === p.id);
-                  return (
-                    <div key={p.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm" style={{ color: t.text1 }}>{p.name}</h3>
-                        {p.description && <p className="text-xs truncate" style={{ color: t.text2 }}>{p.description}</p>}
-                        <p className="font-mono font-bold mt-1" style={{ color: t.accent }}>{parseFloat(p.price).toFixed(2)} €</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {inCart ? (
-                          <>
-                            <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>−</button>
-                            <span className="font-mono w-6 text-center" style={{ color: t.text1 }}>{inCart.qty}</span>
-                            <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
-                          </>
-                        ) : (
-                          <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full font-bold text-lg" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+        {step === 'browse' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h2>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {menuCategories.map(cat => (
+                  <button key={cat.key} onClick={() => { setSelectedCategory(cat.key); setStep('menu'); }}
+                    className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                    <span className="text-3xl mb-2">{cat.icon}</span>
+                    <span className="text-xs font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
+                  </button>
+                ))}
+                <button onClick={() => { setSelectedCategory(null); setStep('menu'); }}
+                  className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                  style={{ backgroundColor: t.accent, border: `1px solid ${t.accent}` }}>
+                  <span className="text-3xl mb-2">📋</span>
+                  <span className="text-xs font-semibold" style={{ color: '#fff' }}>Tout voir</span>
+                </button>
               </div>
+            </div>
+
+            {cart.length > 0 && (
+              <button onClick={() => setStep('checkout')}
+                className="w-full py-3 rounded-xl font-semibold text-sm"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
+                Voir le panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+              </button>
             )}
-            {menu.products.length === 0 && <p className="text-center py-12" style={{ color: t.text2 }}>Le menu est vide pour le moment</p>}
           </div>
         )}
 
+        {step === 'menu' && (() => {
+          const filteredProducts = selectedCategory
+            ? menu.products.filter(p => {
+                const catName = menu.categories.find(c => c.id === p.category_id)?.name?.toLowerCase() || '';
+                const productCat = p.category_name?.toLowerCase() || catName;
+                return productCat.includes(selectedCategory);
+              })
+            : menu.products;
+
+          return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setStep('browse')}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                style={{ backgroundColor: t.tabBg || t.cardBg, color: t.text1 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+                </svg>
+                Catégories
+              </button>
+              {selectedCategory && (
+                <span className="text-sm font-semibold" style={{ color: t.accent }}>
+                  {menuCategories.find(c => c.key === selectedCategory)?.icon} {menuCategories.find(c => c.key === selectedCategory)?.label}
+                </span>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <button onClick={() => setStep('checkout')}
+                className="w-full py-3 rounded-xl font-semibold text-sm sticky top-16 z-30"
+                style={{ backgroundColor: t.accent, color: '#fff' }}>
+                Voir le panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+              </button>
+            )}
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button onClick={() => setSelectedCategory(null)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                style={!selectedCategory ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
+                Tout
+              </button>
+              {menuCategories.map(cat => (
+                <button key={cat.key} onClick={() => setSelectedCategory(cat.key)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={selectedCategory === cat.key ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
+                  {cat.icon} {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredProducts.map(p => {
+                const inCart = cart.find(c => c.id === p.id);
+                return (
+                  <div key={p.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm" style={{ color: t.text1 }}>{p.name}</h3>
+                      {p.description && <p className="text-xs mt-0.5 truncate" style={{ color: t.text2 }}>{p.description}</p>}
+                      <p className="font-mono font-bold mt-1" style={{ color: t.accent }}>{parseFloat(p.price).toFixed(2)} €</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {inCart ? (
+                        <>
+                          <button onClick={() => updateQty(p.id, -1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>-</button>
+                          <span className="font-mono w-6 text-center" style={{ color: t.text1 }}>{inCart.qty}</span>
+                          <button onClick={() => updateQty(p.id, 1)} className="w-8 h-8 rounded-full font-bold" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
+                        </>
+                      ) : (
+                        <button onClick={() => addToCart(p)} className="w-8 h-8 rounded-full font-bold text-lg" style={{ backgroundColor: t.accent, color: '#fff' }}>+</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {filteredProducts.length === 0 && <p className="text-center py-12" style={{ color: t.text2 }}>{selectedCategory ? 'Aucun produit dans cette catégorie' : 'Le menu est vide pour le moment'}</p>}
+          </div>
+          );
+        })()}
+
         {step === 'checkout' && (
           <div className="space-y-6">
-            <button onClick={() => setStep('menu')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
+            <button onClick={() => setStep('browse')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
 
             <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Votre panier</h2>
