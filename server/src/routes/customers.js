@@ -134,7 +134,7 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, customer.password_hash);
     if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' });
 
-    if (!customer.email_verified) {
+    if (SMTP_CONFIGURED && !customer.email_verified) {
       return res.status(403).json({
         error: 'Veuillez vérifier votre adresse email avant de vous connecter',
         code: 'EMAIL_NOT_VERIFIED',

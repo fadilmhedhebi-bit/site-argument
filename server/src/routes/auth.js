@@ -10,6 +10,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.js
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SMTP_CONFIGURED = !!process.env.SMTP_HOST;
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '../../uploads/avatars'),
@@ -64,16 +65,31 @@ router.post('/register', async (req, res) => {
     const businessId = bizResult.rows[0].id;
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const autoVerify = !SMTP_CONFIGURED;
+    const verificationToken = autoVerify ? null : crypto.randomBytes(32).toString('hex');
+    const verificationExpires = autoVerify ? null : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const userResult = await client.query(
       `INSERT INTO users (business_id, username, password_hash, first_name, last_name, email, phone, role, email_verified, verification_token, verification_expires)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'manager', false, $8, $9) RETURNING id, role`,
-      [businessId, username.trim(), passwordHash, firstName.trim(), lastName.trim(), email.trim(), phone?.trim() || null, verificationToken, verificationExpires]
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'manager', $8, $9, $10) RETURNING id, role, business_id`,
+      [businessId, username.trim(), passwordHash, firstName.trim(), lastName.trim(), email.trim(), phone?.trim() || null, autoVerify, verificationToken, verificationExpires]
     );
 
     await client.query('COMMIT');
+
+    if (autoVerify) {
+      const u = userResult.rows[0];
+      return res.status(201).json({
+        message: 'Compte créé avec succès !',
+        token: generateToken(u),
+        user: {
+          id: u.id, username: username.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
+          email: email.trim(), role: u.role, businessId: u.business_id,
+          businessName: businessName.trim(), businessAddress: businessAddress?.trim() || null,
+          businessPhone: businessPhone?.trim() || null,
+        },
+      });
+    }
 
     sendVerificationEmail(email.trim(), verificationToken, firstName.trim()).catch(err => {
       console.error('Failed to send verification email:', err);
@@ -227,7 +243,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Identifiants incorrects' });
     }
 
-    if (!user.email_verified && user.email) {
+    if (SMTP_CONFIGURED && !user.email_verified && user.email) {
       return res.status(403).json({
         error: 'Veuillez vérifier votre adresse email avant de vous connecter',
         code: 'EMAIL_NOT_VERIFIED',

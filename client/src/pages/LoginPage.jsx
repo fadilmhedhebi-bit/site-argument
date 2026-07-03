@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
 import { colors, shadows } from '../theme';
-import { api } from '../utils/api';
+import { api, setApiToken } from '../utils/api';
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login');
@@ -12,7 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
+  const setState = useAuthStore.setState;
   const { t, isDark } = useTheme();
 
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -54,10 +55,16 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/register', regForm);
-      setRegistrationDone(true);
-      setMode('verify-notice');
-      setVerificationEmail(regForm.email);
+      const result = await api.post('/auth/register', regForm);
+      if (result.token && result.user) {
+        setApiToken(result.token);
+        setState({ token: result.token, user: result.user });
+        navigate('/');
+      } else {
+        setRegistrationDone(true);
+        setMode('verify-notice');
+        setVerificationEmail(regForm.email);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
