@@ -6,6 +6,7 @@ const DELIVERY_FEE = 2.50;
 export default function useCart(businessId) {
   const [cart, setCart] = useState([]);
   const [promoResult, setPromoResult] = useState(null);
+  const [orderType, setOrderType] = useState('delivery');
 
   const addToCart = (product) => {
     setCart(prev => {
@@ -27,7 +28,9 @@ export default function useCart(businessId) {
       : promoResult.type === 'fixed' ? parseFloat(promoResult.value) : 0)
     : 0;
   const freeDelivery = promoResult?.type === 'free_delivery';
-  const total = Math.max(0, subtotal + (freeDelivery ? 0 : DELIVERY_FEE) - discount);
+  const hasDeliveryFee = orderType === 'delivery';
+  const effectiveDeliveryFee = hasDeliveryFee && !freeDelivery ? DELIVERY_FEE : 0;
+  const total = Math.max(0, subtotal + effectiveDeliveryFee - discount);
   const itemCount = cart.reduce((s, c) => s + c.qty, 0);
 
   const validatePromo = async (promoCode) => {
@@ -45,5 +48,6 @@ export default function useCart(businessId) {
     subtotal, discount, freeDelivery, total, itemCount,
     deliveryFee: DELIVERY_FEE,
     promoResult, validatePromo, resetPromo,
+    orderType, setOrderType, hasDeliveryFee,
   };
 }

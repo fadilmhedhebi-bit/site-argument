@@ -40,9 +40,10 @@ export default function CustomerPage() {
     cart, addToCart, updateQty, clearCart,
     subtotal, discount, freeDelivery, total, itemCount,
     deliveryFee, promoResult, validatePromo, resetPromo,
+    orderType, setOrderType, hasDeliveryFee,
   } = useCart(businessId);
   const [orderStep, setOrderStep] = useState('menu');
-  const [orderForm, setOrderForm] = useState({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '' });
+  const [orderForm, setOrderForm] = useState({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '', tableNumber: '' });
   const [confirmation, setConfirmation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -226,7 +227,8 @@ export default function CustomerPage() {
   };
 
   const submitOrder = async () => {
-    if (!orderForm.deliveryAddress) return alert('Adresse de livraison requise');
+    if (orderType === 'delivery' && !orderForm.deliveryAddress) return alert('Adresse de livraison requise');
+    if (orderType === 'dine_in' && !orderForm.tableNumber) return alert('Numéro de table requis');
     setSubmitting(true);
     try {
       const result = await api.post(`/orders/public/${businessId}`, {
@@ -237,8 +239,10 @@ export default function CustomerPage() {
         deliveryNotes: orderForm.deliveryNotes,
         paymentMethod: orderForm.paymentMethod,
         promoCode: orderForm.promoCode,
+        orderType,
+        tableNumber: orderForm.tableNumber,
         items: cart.map(c => ({ productId: c.id, quantity: c.qty })),
-        deliveryFee,
+        deliveryFee: hasDeliveryFee ? deliveryFee : 0,
         customerId: customer.id,
       });
       setConfirmation(result);
@@ -763,17 +767,44 @@ export default function CustomerPage() {
           <div className="space-y-4">
             <button onClick={() => setOrderStep('menu')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
 
-            <CartSummary cart={cart} updateQty={updateQty} subtotal={subtotal} deliveryFee={deliveryFee} freeDelivery={freeDelivery} discount={discount} total={total} />
+            <CartSummary cart={cart} updateQty={updateQty} subtotal={subtotal} deliveryFee={deliveryFee} freeDelivery={freeDelivery} discount={discount} total={total} hasDeliveryFee={hasDeliveryFee} />
 
             <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Livraison</h2>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Type de commande</h2>
+              <div className="flex gap-2">
+                {[{ v: 'dine_in', l: 'Sur place' }, { v: 'takeaway', l: 'Emporter' }, { v: 'delivery', l: 'Livraison' }].map(m => (
+                  <button key={m.v} onClick={() => setOrderType(m.v)}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                    style={orderType === m.v
+                      ? { backgroundColor: t.accent, color: '#fff' }
+                      : { backgroundColor: t.bg, color: t.text1, border: `1px solid ${t.border}` }
+                    }>
+                    {m.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>
+                {orderType === 'dine_in' ? 'Sur place' : orderType === 'takeaway' ? 'À emporter' : 'Livraison'}
+              </h2>
               <div className="space-y-3">
-                <input placeholder="Adresse de livraison *" value={orderForm.deliveryAddress}
-                  onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
-                <textarea placeholder="Notes (étage, code...)" value={orderForm.deliveryNotes}
-                  onChange={e => setOrderForm({ ...orderForm, deliveryNotes: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} rows={2} />
+                {orderType === 'dine_in' && (
+                  <input placeholder="Numéro de table *" value={orderForm.tableNumber}
+                    onChange={e => setOrderForm({ ...orderForm, tableNumber: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                )}
+                {orderType === 'delivery' && (
+                  <>
+                    <input placeholder="Adresse de livraison *" value={orderForm.deliveryAddress}
+                      onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
+                    <textarea placeholder="Notes (étage, code...)" value={orderForm.deliveryNotes}
+                      onChange={e => setOrderForm({ ...orderForm, deliveryNotes: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} rows={2} />
+                  </>
+                )}
                 <div>
                   <p className="text-xs mb-2" style={{ color: t.text2 }}>Mode de paiement</p>
                   <div className="flex gap-2">
@@ -826,7 +857,7 @@ export default function CustomerPage() {
                   style={{ backgroundColor: t.accent, color: '#fff' }}>
                   Suivre
                 </a>
-                <button onClick={() => { setView('home'); setOrderStep('menu'); setConfirmation(null); resetPromo(); setOrderForm({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '' }); }}
+                <button onClick={() => { setView('home'); setOrderStep('menu'); setConfirmation(null); resetPromo(); setOrderType('delivery'); setOrderForm({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '', tableNumber: '' }); }}
                   className="flex-1 py-3 rounded-lg font-semibold text-sm"
                   style={{ backgroundColor: t.border, color: t.text1 }}>
                   Accueil

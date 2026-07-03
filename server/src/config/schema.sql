@@ -473,3 +473,9 @@ CREATE INDEX IF NOT EXISTS idx_cash_transactions_session ON cash_transactions(se
 -- ============================================================
 
 CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1001;
+
+-- Order type (dine-in / takeaway / delivery)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) DEFAULT 'delivery'
+  CHECK (order_type IN ('dine_in', 'takeaway', 'delivery'));
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS table_number VARCHAR(20);
+ALTER TABLE orders ALTER COLUMN delivery_address DROP NOT NULL;

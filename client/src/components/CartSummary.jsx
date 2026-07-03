@@ -1,6 +1,6 @@
 import { useTheme } from '../ThemeContext';
 
-export default function CartSummary({ cart, updateQty, subtotal, deliveryFee, freeDelivery, discount, total }) {
+export default function CartSummary({ cart, updateQty, subtotal, deliveryFee, freeDelivery, discount, total, hasDeliveryFee }) {
   const { t } = useTheme();
 
   return (
@@ -23,7 +23,9 @@ export default function CartSummary({ cart, updateQty, subtotal, deliveryFee, fr
       </div>
       <div className="mt-3 pt-3 space-y-1 text-sm" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="flex justify-between"><span style={{ color: t.text2 }}>Sous-total</span><span className="font-mono" style={{ color: t.text1 }}>{subtotal.toFixed(2)} €</span></div>
-        <div className="flex justify-between"><span style={{ color: t.text2 }}>Livraison</span><span className="font-mono" style={{ color: t.text1 }}>{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
+        {hasDeliveryFee && (
+          <div className="flex justify-between"><span style={{ color: t.text2 }}>Livraison</span><span className="font-mono" style={{ color: t.text1 }}>{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
+        )}
         {discount > 0 && <div className="flex justify-between" style={{ color: t.greenText }}><span>Remise</span><span className="font-mono">-{discount.toFixed(2)} €</span></div>}
         <div className="flex justify-between font-bold pt-2" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
           <span>Total</span><span className="font-mono" style={{ color: t.accent }}>{total.toFixed(2)} €</span>

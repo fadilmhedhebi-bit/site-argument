@@ -202,12 +202,16 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
     customerName, customerPhone, customerEmail, deliveryAddress,
     deliveryLatitude, deliveryLongitude, deliveryNotes,
     paymentMethod, items, promoCode, customerId,
+    orderType, tableNumber,
   } = req.body;
+
+  const type = ['dine_in', 'takeaway', 'delivery'].includes(orderType) ? orderType : 'delivery';
 
   if (!UUID_RE.test(req.params.businessId)) return res.status(400).json({ error: 'Business ID invalide' });
   if (!customerName?.trim()) return res.status(400).json({ error: 'Nom requis' });
   if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone requis' });
-  if (!deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'delivery' && !deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'dine_in' && !tableNumber) return res.status(400).json({ error: 'Numéro de table requis' });
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Panier vide' });
 
   const businessId = req.params.businessId;
@@ -242,7 +246,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
 
     let discountAmount = 0;
     let promoCodeId = null;
-    const deliveryFee = 2.50;
+    const deliveryFee = type === 'delivery' ? 2.50 : 0;
 
     if (promoCode) {
       const discount = await applyPromoCode(client, promoCode, businessId, subtotal, deliveryFee);
@@ -256,12 +260,14 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
     const orderResult = await client.query(
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
        delivery_address, delivery_latitude, delivery_longitude, delivery_notes,
-       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id, customer_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id, customer_id,
+       order_type, table_number)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
       [businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
-       deliveryAddress.trim(), deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
+       deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
        subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
-       customerId && UUID_RE.test(customerId) ? customerId : null]
+       customerId && UUID_RE.test(customerId) ? customerId : null,
+       type, tableNumber || null]
     );
 
     for (const item of orderItems) {
@@ -329,6 +335,7 @@ router.get('/track/:orderNumber', async (req, res) => {
       `SELECT o.order_number, o.status, o.customer_name, o.delivery_address, o.total,
               o.subtotal, o.delivery_fee, o.discount_amount,
               o.payment_method, o.estimated_delivery_at, o.delivered_at, o.created_at,
+              o.order_type, o.table_number,
               u.first_name as driver_first_name, u.last_name as driver_last_name
        FROM orders o LEFT JOIN users u ON u.id = o.driver_id
        WHERE o.order_number = $1`,

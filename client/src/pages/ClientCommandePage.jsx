@@ -24,12 +24,14 @@ export default function ClientCommandePage() {
     cart, addToCart, updateQty,
     subtotal, discount, freeDelivery, total, itemCount,
     deliveryFee, promoResult, validatePromo,
+    orderType, setOrderType, hasDeliveryFee,
   } = useCart(businessId);
   const [step, setStep] = useState('browse');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerEmail: '',
     deliveryAddress: '', paymentMethod: 'cash', promoCode: '', deliveryNotes: '',
+    tableNumber: '',
   });
   const [confirmation, setConfirmation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,13 +45,14 @@ export default function ClientCommandePage() {
   }, [businessId]);
 
   const submitOrder = async () => {
-    if (!form.customerName || !form.customerPhone || !form.deliveryAddress) {
-      return alert('Nom, téléphone et adresse requis');
-    }
+    if (!form.customerName || !form.customerPhone) return alert('Nom et téléphone requis');
+    if (orderType === 'delivery' && !form.deliveryAddress) return alert('Adresse de livraison requise');
+    if (orderType === 'dine_in' && !form.tableNumber) return alert('Numéro de table requis');
     setSubmitting(true);
     try {
       const result = await api.post(`/orders/public/${businessId}`, {
-        ...form, items: cart.map(c => ({ productId: c.id, quantity: c.qty })), deliveryFee,
+        ...form, orderType, items: cart.map(c => ({ productId: c.id, quantity: c.qty })),
+        deliveryFee: hasDeliveryFee ? deliveryFee : 0,
       });
       setConfirmation(result);
       setStep('confirmed');
@@ -196,10 +199,26 @@ export default function ClientCommandePage() {
           <div className="space-y-6">
             <button onClick={() => setStep('browse')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
 
-            <CartSummary cart={cart} updateQty={updateQty} subtotal={subtotal} deliveryFee={deliveryFee} freeDelivery={freeDelivery} discount={discount} total={total} />
+            <CartSummary cart={cart} updateQty={updateQty} subtotal={subtotal} deliveryFee={deliveryFee} freeDelivery={freeDelivery} discount={discount} total={total} hasDeliveryFee={hasDeliveryFee} />
 
             <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Informations de livraison</h2>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Type de commande</h2>
+              <div className="flex gap-2">
+                {[{ v: 'dine_in', l: 'Sur place' }, { v: 'takeaway', l: 'Emporter' }, { v: 'delivery', l: 'Livraison' }].map(m => (
+                  <button key={m.v} onClick={() => setOrderType(m.v)}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                    style={orderType === m.v
+                      ? { backgroundColor: t.accent, color: '#fff' }
+                      : { backgroundColor: t.bg, color: t.text1, border: `1px solid ${t.border}` }
+                    }>
+                    {m.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Vos informations</h2>
               <div className="space-y-3">
                 <input placeholder="Nom complet *" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
@@ -209,10 +228,18 @@ export default function ClientCommandePage() {
                   <input placeholder="Email" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })}
                     className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
                 </div>
-                <input placeholder="Adresse de livraison *" value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                <textarea placeholder="Notes (étage, code, etc.)" value={form.deliveryNotes} onChange={e => setForm({ ...form, deliveryNotes: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} rows={2} />
+                {orderType === 'dine_in' && (
+                  <input placeholder="Numéro de table *" value={form.tableNumber} onChange={e => setForm({ ...form, tableNumber: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                )}
+                {orderType === 'delivery' && (
+                  <>
+                    <input placeholder="Adresse de livraison *" value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                    <textarea placeholder="Notes (étage, code, etc.)" value={form.deliveryNotes} onChange={e => setForm({ ...form, deliveryNotes: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} rows={2} />
+                  </>
+                )}
 
                 <div>
                   <p className="text-xs mb-2" style={{ color: t.text2 }}>Mode de paiement</p>
