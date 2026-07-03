@@ -13,19 +13,41 @@ import ClientsTab from './tabs/ClientsTab';
 import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
 
-const modules = [
-  { id: 'reservations', label: 'Réservations', desc: 'Prises de réservation' },
-  { id: 'commandes', label: 'Commandes', desc: 'Gérer les commandes' },
-  { id: 'tables', label: 'Plan de table', desc: 'Gestion des tables' },
-  { id: 'caisse', label: 'Caisse', desc: 'Encaissements & comptes' },
-  { id: 'menu', label: 'Menu', desc: 'Carte & produits' },
-  { id: 'stats', label: 'Statistiques', desc: 'Tableaux de bord' },
-  { id: 'equipe', label: 'Équipe', desc: 'Gestion du personnel' },
-  { id: 'tournees', label: 'Tournées', desc: 'Planifier les livraisons' },
-  { id: 'clients', label: 'Clients', desc: 'Comptes & fidélité' },
-  { id: 'ingredients', label: 'Ingrédients', desc: 'Matières premières' },
-  { id: 'historique', label: 'Historique', desc: 'Journal des commandes' },
+const moduleGroups = [
+  {
+    title: 'Service',
+    modules: [
+      { id: 'commandes', label: 'Commandes', desc: 'Gérer les commandes' },
+      { id: 'reservations', label: 'Réservations', desc: 'Prises de réservation' },
+      { id: 'tables', label: 'Plan de table', desc: 'Gestion des tables' },
+      { id: 'caisse', label: 'Caisse', desc: 'Encaissements & comptes' },
+    ],
+  },
+  {
+    title: 'Cuisine & Carte',
+    modules: [
+      { id: 'menu', label: 'Menu', desc: 'Carte & produits' },
+      { id: 'ingredients', label: 'Ingrédients', desc: 'Matières premières' },
+    ],
+  },
+  {
+    title: 'Livraisons & Clients',
+    modules: [
+      { id: 'tournees', label: 'Tournées', desc: 'Planifier les livraisons' },
+      { id: 'clients', label: 'Clients', desc: 'Comptes & fidélité' },
+    ],
+  },
+  {
+    title: 'Pilotage',
+    modules: [
+      { id: 'stats', label: 'Statistiques', desc: 'Tableaux de bord' },
+      { id: 'equipe', label: 'Équipe', desc: 'Gestion du personnel' },
+      { id: 'historique', label: 'Historique', desc: 'Journal des commandes' },
+    ],
+  },
 ];
+
+const allModules = moduleGroups.flatMap(g => g.modules);
 
 const components = {
   commandes: CommandesTab,
@@ -48,7 +70,7 @@ export default function DashboardPage() {
 
   if (activeModule) {
     const ModuleComponent = components[activeModule];
-    const mod = modules.find(m => m.id === activeModule);
+    const mod = allModules.find(m => m.id === activeModule);
     return (
       <div>
         <button
@@ -75,21 +97,30 @@ export default function DashboardPage() {
         <p className="text-sm mt-1" style={{ color: t.text2 }}>Que souhaitez-vous faire ?</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {modules.map((mod) => (
-          <button
-            key={mod.id}
-            onClick={() => setActiveModule(mod.id)}
-            className="flex flex-col items-center justify-center aspect-square rounded-2xl p-4 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-            style={{
-              backgroundColor: t.cardBg,
-              border: `1px solid ${t.border}`,
-              boxShadow: '0 2px 8px rgba(0,0,0,.04)',
-            }}
-          >
-            <span className="text-sm font-semibold" style={{ color: t.text1 }}>{mod.label}</span>
-            <span className="text-[11px] mt-1 text-center leading-tight" style={{ color: t.text2 }}>{mod.desc}</span>
-          </button>
+      <div className="space-y-6">
+        {moduleGroups.map((group) => (
+          <div key={group.title}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: t.text2 }}>
+              {group.title}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {group.modules.map((mod) => (
+                <button
+                  key={mod.id}
+                  onClick={() => setActiveModule(mod.id)}
+                  className="flex flex-col items-start rounded-xl p-4 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    backgroundColor: t.cardBg,
+                    border: `1px solid ${t.border}`,
+                    boxShadow: '0 2px 8px rgba(0,0,0,.04)',
+                  }}
+                >
+                  <span className="text-sm font-semibold" style={{ color: t.text1 }}>{mod.label}</span>
+                  <span className="text-[11px] mt-1 leading-tight" style={{ color: t.text2 }}>{mod.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
