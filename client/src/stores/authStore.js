@@ -1,33 +1,46 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { api, setApiToken } from '../utils/api';
 
-export const useAuthStore = create((set) => ({
-  user: null,
-  token: null,
+export const useAuthStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
 
-  login: async (username, password) => {
-    const data = await api.post('/auth/login', { username, password });
-    setApiToken(data.token);
-    set({ user: data.user, token: data.token });
-    return data;
-  },
+      login: async (username, password) => {
+        const data = await api.post('/auth/login', { username, password });
+        setApiToken(data.token);
+        set({ user: data.user, token: data.token });
+        return data;
+      },
 
-  register: async (payload) => {
-    const data = await api.post('/auth/register', payload);
-    setApiToken(data.token);
-    set({ user: data.user, token: data.token });
-    return data;
-  },
+      register: async (payload) => {
+        const data = await api.post('/auth/register', payload);
+        setApiToken(data.token);
+        set({ user: data.user, token: data.token });
+        return data;
+      },
 
-  logout: () => {
-    setApiToken(null);
-    set({ user: null, token: null });
-  },
+      logout: () => {
+        setApiToken(null);
+        set({ user: null, token: null });
+      },
 
-  setToken: (token) => {
-    setApiToken(token);
-    set({ token });
-  },
+      setToken: (token) => {
+        setApiToken(token);
+        set({ token });
+      },
 
-  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
-}));
+      updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
+    }),
+    {
+      name: 'foodly-auth',
+      onRehydrate: () => (state) => {
+        if (state?.token) {
+          setApiToken(state.token);
+        }
+      },
+    }
+  )
+);
