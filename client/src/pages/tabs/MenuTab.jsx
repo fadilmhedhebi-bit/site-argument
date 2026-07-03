@@ -3,13 +3,13 @@ import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
 
 const NATURES = [
-  { value: 'Entrées', icon: '🥗' },
-  { value: 'Tapas', icon: '🫒' },
-  { value: 'Plats', icon: '🍖' },
-  { value: 'Desserts', icon: '🍰' },
-  { value: 'Cocktails', icon: '🍸' },
-  { value: 'Mocktails', icon: '🧃' },
-  { value: 'Softs', icon: '🥤' },
+  { value: 'Entrées' },
+  { value: 'Tapas' },
+  { value: 'Plats' },
+  { value: 'Desserts' },
+  { value: 'Cocktails' },
+  { value: 'Mocktails' },
+  { value: 'Softs' },
 ];
 
 export default function MenuTab() {
@@ -159,7 +159,7 @@ export default function MenuTab() {
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
             className="px-4 py-2 rounded-lg text-sm focus:outline-none" style={inputStyle}>
             <option value="">Toutes catégories</option>
-            {NATURES.map(n => <option key={n.value} value={n.value}>{n.icon} {n.value}</option>)}
+            {NATURES.map(n => <option key={n.value} value={n.value}>{n.value}</option>)}
           </select>
         </div>
 
@@ -169,8 +169,8 @@ export default function MenuTab() {
               {p.image_url ? (
                 <img src={`${apiBase}${p.image_url}`} alt={p.name} className="w-full h-40 object-cover" />
               ) : (
-                <div className="w-full h-40 flex items-center justify-center text-4xl" style={{ backgroundColor: t.tabBg }}>
-                  🍽️
+                <div className="w-full h-40 flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: t.tabBg, color: t.text2 }}>
+                  Aucune photo
                 </div>
               )}
               <div className="p-4">
@@ -239,7 +239,7 @@ export default function MenuTab() {
                 {imagePreview ? (
                   <img src={imagePreview} alt="Aperçu" className="w-full h-40 object-cover rounded-lg" />
                 ) : (
-                  <div className="w-full h-40 flex items-center justify-center rounded-lg text-3xl" style={{ backgroundColor: t.tabBg }}>🍽️</div>
+                  <div className="w-full h-40 flex items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: t.tabBg, color: t.text2 }}>Aucune photo</div>
                 )}
                 <label className="px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer" style={{ backgroundColor: t.accentBg, color: t.accent }}>
                   {imagePreview ? 'Changer la photo' : 'Ajouter une photo'}
@@ -256,7 +256,7 @@ export default function MenuTab() {
                 <select value={productForm.categoryName} onChange={e => setProductForm({ ...productForm, categoryName: e.target.value })}
                   className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle}>
                   <option value="">Catégorie *</option>
-                  {NATURES.map(n => <option key={n.value} value={n.value}>{n.icon} {n.value}</option>)}
+                  {NATURES.map(n => <option key={n.value} value={n.value}>{n.value}</option>)}
                 </select>
               </div>
             </div>

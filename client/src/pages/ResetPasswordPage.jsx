@@ -62,8 +62,8 @@ export default function ResetPasswordPage() {
         <div className="rounded-2xl p-8" style={{ backgroundColor: t.cardBg }}>
           {success ? (
             <div className="text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
-                &#10003;
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
               <h2 className="text-xl font-bold mb-2" style={{ color: t.text1 }}>Mot de passe modifié</h2>
               <p className="text-sm mb-6" style={{ color: t.text2 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>

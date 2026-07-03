@@ -5,13 +5,13 @@ import FoodlyLogo from '../components/FoodlyLogo';
 import { useTheme } from '../ThemeContext';
 
 const menuCategories = [
-  { label: 'Entrées', icon: '🥗' },
-  { label: 'Tapas', icon: '🫒' },
-  { label: 'Plats', icon: '🍖' },
-  { label: 'Desserts', icon: '🍰' },
-  { label: 'Cocktails', icon: '🍸' },
-  { label: 'Mocktails', icon: '🧃' },
-  { label: 'Softs', icon: '🥤' },
+  { label: 'Entrées' },
+  { label: 'Tapas' },
+  { label: 'Plats' },
+  { label: 'Desserts' },
+  { label: 'Cocktails' },
+  { label: 'Mocktails' },
+  { label: 'Softs' },
 ];
 
 export default function ClientCommandePage() {
@@ -114,20 +114,18 @@ export default function ClientCommandePage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              <div className="flex flex-col gap-2">
                 {menuCategories.map(cat => (
                   <button key={cat.label} onClick={() => { setSelectedCategory(cat.label); setStep('menu'); }}
-                    className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    className="flex items-center px-4 py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                     style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                    <span className="text-3xl mb-2">{cat.icon}</span>
-                    <span className="text-xs font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
+                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
                   </button>
                 ))}
                 <button onClick={() => { setSelectedCategory(null); setStep('menu'); }}
-                  className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                  className="flex items-center px-4 py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                   style={{ backgroundColor: t.accent, border: `1px solid ${t.accent}` }}>
-                  <span className="text-3xl mb-2">📋</span>
-                  <span className="text-xs font-semibold" style={{ color: '#fff' }}>Tout voir</span>
+                  <span className="text-sm font-semibold" style={{ color: '#fff' }}>Tout voir</span>
                 </button>
               </div>
             </div>
@@ -160,7 +158,7 @@ export default function ClientCommandePage() {
               </button>
               {selectedCategory && (
                 <span className="text-sm font-semibold" style={{ color: t.accent }}>
-                  {menuCategories.find(c => c.label === selectedCategory)?.icon} {selectedCategory}
+                  {selectedCategory}
                 </span>
               )}
             </div>
@@ -183,7 +181,7 @@ export default function ClientCommandePage() {
                 <button key={cat.label} onClick={() => setSelectedCategory(cat.label)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
                   style={selectedCategory === cat.label ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
-                  {cat.icon} {cat.label}
+                  {cat.label}
                 </button>
               ))}
             </div>
@@ -288,7 +286,7 @@ export default function ClientCommandePage() {
                 </div>
                 {promoResult && (
                   <p className="text-xs" style={{ color: t.greenText }}>
-                    ✓ Code appliqué : {promoResult.type === 'percentage' ? `${promoResult.value}%` : promoResult.type === 'fixed' ? `${promoResult.value} €` : 'Livraison gratuite'}
+                    Code appliqué : {promoResult.type === 'percentage' ? `${promoResult.value}%` : promoResult.type === 'fixed' ? `${promoResult.value} €` : 'Livraison gratuite'}
                   </p>
                 )}
               </div>
@@ -304,7 +302,9 @@ export default function ClientCommandePage() {
         {step === 'confirmed' && confirmation && (
           <div className="text-center py-12">
             <div className="rounded-2xl p-8 max-w-md mx-auto" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <div className="w-16 h-16 rounded-full bg-go/20 flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
+              <div className="w-16 h-16 rounded-full bg-go/20 flex items-center justify-center mx-auto mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
               <h2 className="text-xl font-heading mb-2" style={{ color: t.text1 }}>Commande confirmée !</h2>
               <p className="text-sm mb-4" style={{ color: t.text2 }}>Votre numéro de commande :</p>
               <p className="text-3xl font-mono font-bold mb-6" style={{ color: t.accent }}>{confirmation.order_number || confirmation.orderNumber}</p>

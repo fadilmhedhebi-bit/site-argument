@@ -14,17 +14,17 @@ import EquipeTab from './tabs/EquipeTab';
 import HistoriqueTab from './tabs/HistoriqueTab';
 
 const modules = [
-  { id: 'reservations', label: 'Réservations', icon: '📅', desc: 'Prises de réservation' },
-  { id: 'commandes', label: 'Commandes', icon: '🛒', desc: 'Gérer les commandes' },
-  { id: 'tables', label: 'Plan de table', icon: '🪑', desc: 'Gestion des tables' },
-  { id: 'caisse', label: 'Caisse', icon: '💰', desc: 'Encaissements & comptes' },
-  { id: 'menu', label: 'Menu', icon: '🍽️', desc: 'Carte & produits' },
-  { id: 'stats', label: 'Statistiques', icon: '📊', desc: 'Tableaux de bord' },
-  { id: 'equipe', label: 'Équipe', icon: '👥', desc: 'Gestion du personnel' },
-  { id: 'tournees', label: 'Tournées', icon: '🚗', desc: 'Planifier les livraisons' },
-  { id: 'clients', label: 'Clients', icon: '💳', desc: 'Comptes & fidélité' },
-  { id: 'ingredients', label: 'Ingrédients', icon: '🧂', desc: 'Matières premières' },
-  { id: 'historique', label: 'Historique', icon: '📒', desc: 'Journal des commandes' },
+  { id: 'reservations', label: 'Réservations', desc: 'Prises de réservation' },
+  { id: 'commandes', label: 'Commandes', desc: 'Gérer les commandes' },
+  { id: 'tables', label: 'Plan de table', desc: 'Gestion des tables' },
+  { id: 'caisse', label: 'Caisse', desc: 'Encaissements & comptes' },
+  { id: 'menu', label: 'Menu', desc: 'Carte & produits' },
+  { id: 'stats', label: 'Statistiques', desc: 'Tableaux de bord' },
+  { id: 'equipe', label: 'Équipe', desc: 'Gestion du personnel' },
+  { id: 'tournees', label: 'Tournées', desc: 'Planifier les livraisons' },
+  { id: 'clients', label: 'Clients', desc: 'Comptes & fidélité' },
+  { id: 'ingredients', label: 'Ingrédients', desc: 'Matières premières' },
+  { id: 'historique', label: 'Historique', desc: 'Journal des commandes' },
 ];
 
 const components = {
@@ -59,7 +59,7 @@ export default function DashboardPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
           </svg>
-          <span>{mod?.icon} {mod?.label}</span>
+          <span>{mod?.label}</span>
         </button>
         <ModuleComponent />
       </div>
@@ -87,7 +87,6 @@ export default function DashboardPage() {
               boxShadow: '0 2px 8px rgba(0,0,0,.04)',
             }}
           >
-            <span className="text-4xl mb-3">{mod.icon}</span>
             <span className="text-sm font-semibold" style={{ color: t.text1 }}>{mod.label}</span>
             <span className="text-[11px] mt-1 text-center leading-tight" style={{ color: t.text2 }}>{mod.desc}</span>
           </button>

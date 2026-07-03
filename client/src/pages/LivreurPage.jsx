@@ -8,7 +8,7 @@ import { useTheme } from '../ThemeContext';
 import 'leaflet/dist/leaflet.css';
 
 const myIcon = new L.DivIcon({
-  html: '<div style="background:#3140A8;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🚗</div>',
+  html: '<div style="background:#3140A8;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">L</div>',
   className: '', iconSize: [36, 36], iconAnchor: [18, 18],
 });
 
@@ -37,7 +37,7 @@ function nextAction(status) {
     case 'confirmed': return { label: 'Préparer', next: 'preparing' };
     case 'preparing': return { label: 'Prête', next: 'ready' };
     case 'ready': return { label: 'En livraison', next: 'in_delivery' };
-    case 'in_delivery': return { label: 'Livrée ✓', next: 'delivered' };
+    case 'in_delivery': return { label: 'Livrée', next: 'delivered' };
     default: return null;
   }
 }

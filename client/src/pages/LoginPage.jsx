@@ -124,8 +124,8 @@ export default function LoginPage() {
 
             {forgotMsg ? (
               <div className="text-center">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
-                  &#10003;
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <p className="text-sm mb-4" style={{ color: t.text1 }}>{forgotMsg}</p>
                 <button onClick={() => { setMode('login'); setForgotMsg(''); setForgotEmail(''); }}
@@ -288,13 +288,11 @@ export default function LoginPage() {
                 className="w-full p-4 rounded-[14px] text-left transition-colors"
                 style={{ border: `2px solid ${t.accent}` }}
               >
-                <span className="text-lg">&#127978;</span>
-                <h3 className="font-semibold mt-1" style={{ color: t.text1 }}>Gestionnaire</h3>
+                <h3 className="font-semibold" style={{ color: t.text1 }}>Gestionnaire</h3>
                 <p className="text-xs" style={{ color: t.text2 }}>Gérez votre commerce, vos livreurs et vos commandes</p>
               </button>
               <div className="w-full p-4 rounded-[14px] opacity-50 cursor-not-allowed" style={{ border: `1px solid ${t.border}` }}>
-                <span className="text-lg">&#128663;</span>
-                <h3 className="font-semibold mt-1" style={{ color: t.text1 }}>Livreur</h3>
+                <h3 className="font-semibold" style={{ color: t.text1 }}>Livreur</h3>
                 <p className="text-xs" style={{ color: t.text2 }}>Contactez votre gestionnaire pour obtenir vos identifiants</p>
               </div>
             </div>

@@ -360,7 +360,9 @@ export default function CustomerPage() {
             </div>
             {forgotMsg ? (
               <div className="text-center">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>&#10003;</div>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
                 <p className="text-sm mb-4" style={{ color: t.text1 }}>{forgotMsg}</p>
                 <button onClick={() => { setForgotMode(false); setForgotMsg(''); setForgotEmail(''); }}
                   className="text-sm font-semibold hover:underline" style={{ color: t.accent }}>Retour à la connexion</button>
@@ -486,20 +488,19 @@ export default function CustomerPage() {
       <div className="max-w-3xl mx-auto px-4 py-4">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
           {[
-            { id: 'home', label: 'Accueil', icon: '&#127968;' },
-            { id: 'order', label: 'Commander', icon: '&#128722;' },
-            { id: 'loyalty', label: 'Fidélité', icon: '&#128179;' },
-            { id: 'history', label: 'Historique', icon: '&#128203;' },
-            { id: 'settings', label: 'Paramètres', icon: '&#9881;' },
+            { id: 'home', label: 'Accueil' },
+            { id: 'order', label: 'Commander' },
+            { id: 'loyalty', label: 'Fidélité' },
+            { id: 'history', label: 'Historique' },
+            { id: 'settings', label: 'Paramètres' },
           ].map(tab => (
             <button key={tab.id} onClick={() => { setView(tab.id); if (tab.id === 'order') setOrderStep('menu'); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
               style={view === tab.id
                 ? { backgroundColor: t.accent, color: '#fff' }
                 : { backgroundColor: t.bg, color: t.text1 }
               }>
-              <span dangerouslySetInnerHTML={{ __html: tab.icon }} />
-              <span>{tab.label}</span>
+              {tab.label}
             </button>
           ))}
         </div>
@@ -527,21 +528,20 @@ export default function CustomerPage() {
 
             <div>
               <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h3>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              <div className="flex flex-col gap-2">
                 {[
-                  { label: 'Entrées', icon: '🥗' },
-                  { label: 'Tapas', icon: '🫒' },
-                  { label: 'Plats', icon: '🍖' },
-                  { label: 'Desserts', icon: '🍰' },
-                  { label: 'Cocktails', icon: '🍸' },
-                  { label: 'Mocktails', icon: '🧃' },
-                  { label: 'Softs', icon: '🥤' },
+                  { label: 'Entrées' },
+                  { label: 'Tapas' },
+                  { label: 'Plats' },
+                  { label: 'Desserts' },
+                  { label: 'Cocktails' },
+                  { label: 'Mocktails' },
+                  { label: 'Softs' },
                 ].map(cat => (
                   <button key={cat.label} onClick={() => { setView('order'); setOrderStep('menu'); }}
-                    className="flex flex-col items-center justify-center aspect-square rounded-2xl p-3 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                    className="flex items-center px-4 py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                     style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                    <span className="text-3xl mb-2">{cat.icon}</span>
-                    <span className="text-xs font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
+                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
                   </button>
                 ))}
               </div>
@@ -551,16 +551,14 @@ export default function CustomerPage() {
               <button onClick={() => { setView('order'); setOrderStep('menu'); }}
                 className="rounded-xl p-4 text-left hover:opacity-90 transition-colors"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
-                <span className="text-2xl">&#128722;</span>
-                <p className="font-semibold mt-2">Passer commande</p>
-                <p className="text-xs" style={{ opacity: 0.7 }}>Parcourir le menu</p>
+                <p className="font-semibold">Passer commande</p>
+                <p className="text-xs mt-1" style={{ opacity: 0.7 }}>Parcourir le menu</p>
               </button>
               <button onClick={() => setView('loyalty')}
                 className="rounded-xl p-4 text-left transition-colors"
                 style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                <span className="text-2xl">&#128179;</span>
-                <p className="font-semibold mt-2" style={{ color: t.text1 }}>Ma carte de fidélité</p>
-                <p className="text-xs" style={{ color: t.text2 }}>{customer?.loyaltyPoints || 0} points disponibles</p>
+                <p className="font-semibold" style={{ color: t.text1 }}>Ma carte de fidélité</p>
+                <p className="text-xs mt-1" style={{ color: t.text2 }}>{customer?.loyaltyPoints || 0} points disponibles</p>
               </button>
             </div>
           </div>
@@ -884,7 +882,9 @@ export default function CustomerPage() {
         {view === 'order' && orderStep === 'confirmed' && confirmation && (
           <div className="text-center py-12">
             <div className="rounded-2xl p-8 max-w-md mx-auto" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4" style={{ backgroundColor: t.greenBg, color: t.greenText }}>&#10003;</div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: t.greenBg, color: t.greenText }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
               <h2 className="text-xl font-heading mb-2" style={{ color: t.text1 }}>Commande confirmée !</h2>
               <p className="text-3xl font-mono font-bold mb-4" style={{ color: t.accent }}>{confirmation.orderNumber}</p>
               <p className="text-sm mb-6" style={{ color: t.text2 }}>Des points de fidélité ont été ajoutés à votre compte !</p>

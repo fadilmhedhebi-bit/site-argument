@@ -81,7 +81,9 @@ export default function SuiviCommandePage() {
             <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               {isCancelled ? (
                 <div className="text-center py-4">
-                  <div className="w-14 h-14 rounded-full bg-stop/20 flex items-center justify-center text-2xl mx-auto mb-3">✕</div>
+                  <div className="w-14 h-14 rounded-full bg-stop/20 flex items-center justify-center mx-auto mb-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </div>
                   <p className="font-heading text-stop text-lg">Commande annulée</p>
                 </div>
               ) : isProblem ? (
@@ -109,7 +111,7 @@ export default function SuiviCommandePage() {
                                 ? { backgroundColor: t.text3, color: t.bg }
                                 : undefined
                             }>
-                            {done ? '✓' : i + 1}
+                            {done ? (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>) : i + 1}
                           </div>
                           <p className="text-xs mt-2 text-center" style={{ color: done || active ? t.text1 : t.text3, fontWeight: done || active ? 600 : 400 }}>
                             {step.label}
@@ -121,7 +123,9 @@ export default function SuiviCommandePage() {
 
                   {isDelivered && (
                     <div className="text-center mt-6">
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-2" style={{ backgroundColor: t.greenBg }}>✓</div>
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: t.greenBg }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </div>
                       <p className="font-heading text-go text-lg">Livrée !</p>
                     </div>
                   )}

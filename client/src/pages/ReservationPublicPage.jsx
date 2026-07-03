@@ -61,55 +61,37 @@ export default function ReservationPublicPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">👤</span>
-              <div>
-                <p className="text-xs text-gray-400">Nom</p>
-                <p className="font-semibold text-gray-800">{data.customer_first_name} {data.customer_last_name}</p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-400">Nom</p>
+              <p className="font-semibold text-gray-800">{data.customer_first_name} {data.customer_last_name}</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xl">📅</span>
-              <div>
-                <p className="text-xs text-gray-400">Date</p>
-                <p className="font-semibold text-gray-800">{new Date(data.reservation_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-400">Date</p>
+              <p className="font-semibold text-gray-800">{new Date(data.reservation_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🕐</span>
-              <div>
-                <p className="text-xs text-gray-400">Heure</p>
-                <p className="font-semibold text-gray-800">{data.reservation_time.slice(0, 5)}</p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-400">Heure</p>
+              <p className="font-semibold text-gray-800">{data.reservation_time.slice(0, 5)}</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xl">👥</span>
-              <div>
-                <p className="text-xs text-gray-400">Nombre de personnes</p>
-                <p className="font-semibold text-gray-800">{data.party_size} personne{data.party_size > 1 ? 's' : ''}</p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-400">Nombre de personnes</p>
+              <p className="font-semibold text-gray-800">{data.party_size} personne{data.party_size > 1 ? 's' : ''}</p>
             </div>
 
             {data.business_address && (
-              <div className="flex items-center gap-3">
-                <span className="text-xl">📍</span>
-                <div>
-                  <p className="text-xs text-gray-400">Adresse</p>
-                  <p className="font-semibold text-gray-800">{data.business_address}</p>
-                </div>
+              <div>
+                <p className="text-xs text-gray-400">Adresse</p>
+                <p className="font-semibold text-gray-800">{data.business_address}</p>
               </div>
             )}
 
             {data.business_phone && (
-              <div className="flex items-center gap-3">
-                <span className="text-xl">📞</span>
-                <div>
-                  <p className="text-xs text-gray-400">Téléphone</p>
-                  <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: '#1C8275' }}>{data.business_phone}</a>
-                </div>
+              <div>
+                <p className="text-xs text-gray-400">Telephone</p>
+                <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: '#1C8275' }}>{data.business_phone}</a>
               </div>
             )}
           </div>

@@ -73,7 +73,7 @@ export default function CaisseTab() {
     return (
       <div className="space-y-6">
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-          <p className="text-4xl mb-4">💰</p>
+          <p className="text-4xl mb-4"></p>
           <h3 className="text-lg font-heading mb-2" style={{ color: t.text1 }}>Ouvrir la caisse</h3>
           <p className="text-sm mb-6" style={{ color: t.text2 }}>Saisissez le fond de caisse pour démarrer la journée</p>
           <div className="flex gap-3 max-w-xs mx-auto">
