@@ -16,11 +16,10 @@ import HistoriqueTab from './tabs/HistoriqueTab';
 const moduleGroups = [
   {
     title: 'Service',
-    desc: 'Commandes, réservations, tables, caisse',
+    desc: 'Commandes, réservations, caisse',
     modules: [
       { id: 'commandes', label: 'Commandes', desc: 'Gérer les commandes' },
       { id: 'reservations', label: 'Réservations', desc: 'Prises de réservation' },
-      { id: 'tables', label: 'Plan de table', desc: 'Gestion des tables' },
       { id: 'caisse', label: 'Caisse', desc: 'Encaissements & comptes' },
     ],
   },
@@ -34,19 +33,20 @@ const moduleGroups = [
   },
   {
     title: 'Livraisons',
-    desc: 'Tournées, équipe, clients',
+    desc: 'Tournées, équipe',
     modules: [
       { id: 'tournees', label: 'Tournées', desc: 'Planifier les livraisons' },
       { id: 'equipe', label: 'Équipe', desc: 'Gestion du personnel' },
-      { id: 'clients', label: 'Clients', desc: 'Comptes & fidélité' },
     ],
   },
   {
     title: 'Pilotage',
-    desc: 'Statistiques, historique',
+    desc: 'Statistiques, historique, tables, clients',
     modules: [
       { id: 'stats', label: 'Statistiques', desc: 'Tableaux de bord' },
       { id: 'historique', label: 'Historique', desc: 'Journal des commandes' },
+      { id: 'tables', label: 'Plan de table', desc: 'Gestion des tables' },
+      { id: 'clients', label: 'Clients', desc: 'Comptes & fidélité' },
     ],
   },
 ];
