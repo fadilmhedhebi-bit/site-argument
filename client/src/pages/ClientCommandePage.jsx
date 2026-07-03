@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import FoodlyLogo from '../components/FoodlyLogo';
+import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
+import useCart from '../hooks/useCart';
 
 const menuCategories = [
   { label: 'Entrées' },
@@ -18,14 +20,17 @@ export default function ClientCommandePage() {
   const { businessId } = useParams();
   const { t } = useTheme();
   const [menu, setMenu] = useState({ business: null, categories: [], products: [] });
-  const [cart, setCart] = useState([]);
+  const {
+    cart, addToCart, updateQty,
+    subtotal, discount, freeDelivery, total, itemCount,
+    deliveryFee, promoResult, validatePromo,
+  } = useCart(businessId);
   const [step, setStep] = useState('browse');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerEmail: '',
     deliveryAddress: '', paymentMethod: 'cash', promoCode: '', deliveryNotes: '',
   });
-  const [promoResult, setPromoResult] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -36,35 +41,6 @@ export default function ClientCommandePage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [businessId]);
-
-  const addToCart = (product) => {
-    setCart(prev => {
-      const existing = prev.find(c => c.id === product.id);
-      if (existing) return prev.map(c => c.id === product.id ? { ...c, qty: c.qty + 1 } : c);
-      return [...prev, { ...product, qty: 1 }];
-    });
-  };
-
-  const updateQty = (id, delta) => {
-    setCart(prev => prev.map(c => c.id === id ? { ...c, qty: Math.max(0, c.qty + delta) } : c).filter(c => c.qty > 0));
-  };
-
-  const subtotal = cart.reduce((s, c) => s + parseFloat(c.price) * c.qty, 0);
-  const deliveryFee = 2.50;
-  const discount = promoResult
-    ? (promoResult.type === 'percentage' ? subtotal * promoResult.value / 100
-      : promoResult.type === 'fixed' ? parseFloat(promoResult.value) : 0)
-    : 0;
-  const freeDelivery = promoResult?.type === 'free_delivery';
-  const total = Math.max(0, subtotal + (freeDelivery ? 0 : deliveryFee) - discount);
-
-  const validatePromo = async () => {
-    if (!form.promoCode) return;
-    try {
-      const result = await api.post('/promos/validate', { code: form.promoCode, subtotal, businessId });
-      setPromoResult(result);
-    } catch (err) { alert(err.message); setPromoResult(null); }
-  };
 
   const submitOrder = async () => {
     if (!form.customerName || !form.customerPhone || !form.deliveryAddress) {
@@ -102,7 +78,7 @@ export default function ClientCommandePage() {
             <a href={`/client/${businessId}`} className="text-xs hover:underline no-underline" style={{ color: t.accent }}>Mon compte</a>
             {cart.length > 0 && (step === 'menu' || step === 'browse') && (
               <button onClick={() => setStep('checkout')} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.accent, color: '#fff' }}>
-                Panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+                Panier ({itemCount}) · {subtotal.toFixed(2)} €
               </button>
             )}
           </div>
@@ -134,7 +110,7 @@ export default function ClientCommandePage() {
               <button onClick={() => setStep('checkout')}
                 className="w-full py-3 rounded-xl font-semibold text-sm"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
-                Voir le panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+                Voir le panier ({itemCount}) · {subtotal.toFixed(2)} €
               </button>
             )}
           </div>
@@ -167,7 +143,7 @@ export default function ClientCommandePage() {
               <button onClick={() => setStep('checkout')}
                 className="w-full py-3 rounded-xl font-semibold text-sm sticky top-16 z-30"
                 style={{ backgroundColor: t.accent, color: '#fff' }}>
-                Voir le panier ({cart.reduce((s, c) => s + c.qty, 0)}) · {subtotal.toFixed(2)} €
+                Voir le panier ({itemCount}) · {subtotal.toFixed(2)} €
               </button>
             )}
 
@@ -220,32 +196,7 @@ export default function ClientCommandePage() {
           <div className="space-y-6">
             <button onClick={() => setStep('browse')} className="text-sm hover:underline" style={{ color: t.accent }}>← Retour au menu</button>
 
-            <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-              <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Votre panier</h2>
-              <div className="space-y-2">
-                {cart.map(c => (
-                  <div key={c.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => updateQty(c.id, -1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full text-xs font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>−</button>
-                        <span className="font-mono w-6 text-center text-xs" style={{ color: t.text1 }}>{c.qty}</span>
-                        <button onClick={() => updateQty(c.id, 1)} className="w-8 h-8 sm:w-6 sm:h-6 rounded-full text-xs font-bold" style={{ backgroundColor: t.border, color: t.text1 }}>+</button>
-                      </div>
-                      <span style={{ color: t.text1 }}>{c.name}</span>
-                    </div>
-                    <span className="font-mono" style={{ color: t.text1 }}>{(parseFloat(c.price) * c.qty).toFixed(2)} €</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 space-y-1 text-sm" style={{ borderTop: `1px solid ${t.border}` }}>
-                <div className="flex justify-between"><span style={{ color: t.text2 }}>Sous-total</span><span className="font-mono" style={{ color: t.text1 }}>{subtotal.toFixed(2)} €</span></div>
-                <div className="flex justify-between"><span style={{ color: t.text2 }}>Livraison</span><span className="font-mono" style={{ color: t.text1 }}>{freeDelivery ? '0.00' : deliveryFee.toFixed(2)} €</span></div>
-                {discount > 0 && <div className="flex justify-between text-go"><span>Remise</span><span className="font-mono">-{discount.toFixed(2)} €</span></div>}
-                <div className="flex justify-between font-bold pt-2" style={{ color: t.text1, borderTop: `1px solid ${t.border}` }}>
-                  <span>Total</span><span className="font-mono" style={{ color: t.accent }}>{total.toFixed(2)} €</span>
-                </div>
-              </div>
-            </div>
+            <CartSummary cart={cart} updateQty={updateQty} subtotal={subtotal} deliveryFee={deliveryFee} freeDelivery={freeDelivery} discount={discount} total={total} />
 
             <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Informations de livraison</h2>
@@ -282,7 +233,7 @@ export default function ClientCommandePage() {
                 <div className="flex gap-2">
                   <input placeholder="Code promo" value={form.promoCode} onChange={e => setForm({ ...form, promoCode: e.target.value })}
                     className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none text-sm font-mono uppercase" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                  <button onClick={validatePromo} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.border, color: t.text1 }}>Appliquer</button>
+                  <button onClick={() => validatePromo(form.promoCode)} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.border, color: t.text1 }}>Appliquer</button>
                 </div>
                 {promoResult && (
                   <p className="text-xs" style={{ color: t.greenText }}>

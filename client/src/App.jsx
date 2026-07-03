@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useNotificationStore } from './stores/notificationStore';
 import { ThemeProvider } from './ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <ThemeProvider>
     <BrowserRouter>
+      <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -59,6 +61,7 @@ export default function App() {
           } />
         </Route>
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
     </ThemeProvider>
   );
