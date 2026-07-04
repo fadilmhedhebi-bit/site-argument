@@ -380,6 +380,33 @@ router.post('/drivers', authenticate, requireRole('manager'), async (req, res, n
   router.handle(req, res, next);
 });
 
+// GET /api/auth/business/delivery-fee
+router.get('/business/delivery-fee', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT delivery_fee FROM businesses WHERE id = $1', [req.user.businessId]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
+    res.json({ deliveryFee: parseFloat(result.rows[0].delivery_fee ?? 2.50) });
+  } catch (err) {
+    console.error('Get delivery fee error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/auth/business/delivery-fee
+router.patch('/business/delivery-fee', authenticate, requireRole('manager'), async (req, res) => {
+  const { deliveryFee } = req.body;
+  if (deliveryFee == null || isNaN(deliveryFee) || parseFloat(deliveryFee) < 0) {
+    return res.status(400).json({ error: 'Montant invalide (nombre >= 0)' });
+  }
+  try {
+    await pool.query('UPDATE businesses SET delivery_fee = $1, updated_at = NOW() WHERE id = $2', [parseFloat(deliveryFee), req.user.businessId]);
+    res.json({ deliveryFee: parseFloat(deliveryFee) });
+  } catch (err) {
+    console.error('Update delivery fee error:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour' });
+  }
+});
+
 // PATCH /api/auth/role
 router.patch('/role', authenticate, requireRole('manager'), async (req, res) => {
   const { role } = req.body;

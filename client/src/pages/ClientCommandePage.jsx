@@ -25,6 +25,7 @@ export default function ClientCommandePage() {
     subtotal, discount, freeDelivery, total, itemCount,
     deliveryFee, promoResult, validatePromo,
     orderType, setOrderType, hasDeliveryFee,
+    setBusinessDeliveryFee,
   } = useCart(businessId);
   const [step, setStep] = useState('browse');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -39,7 +40,10 @@ export default function ClientCommandePage() {
 
   useEffect(() => {
     api.get(`/products/public/${businessId}`)
-      .then(setMenu)
+      .then(data => {
+        setMenu(data);
+        setBusinessDeliveryFee(parseFloat(data.business?.delivery_fee ?? 0));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [businessId]);

@@ -479,3 +479,6 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) DEFAULT 'deli
   CHECK (order_type IN ('dine_in', 'takeaway', 'delivery'));
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS table_number VARCHAR(20);
 ALTER TABLE orders ALTER COLUMN delivery_address DROP NOT NULL;
+
+-- Configurable delivery fee per business
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 2.50;

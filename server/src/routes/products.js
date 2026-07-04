@@ -347,7 +347,7 @@ router.get('/public/:businessId', async (req, res) => {
 
   try {
     const [biz, cats, products] = await Promise.all([
-      pool.query('SELECT id, name, address, phone FROM businesses WHERE id = $1', [req.params.businessId]),
+      pool.query('SELECT id, name, address, phone, delivery_fee FROM businesses WHERE id = $1', [req.params.businessId]),
       pool.query('SELECT * FROM product_categories WHERE business_id = $1 ORDER BY sort_order, name', [req.params.businessId]),
       pool.query(
         `SELECT p.id, p.name, p.description, p.price, p.image_url, p.category_id, c.name as category_name

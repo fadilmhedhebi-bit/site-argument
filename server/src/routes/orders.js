@@ -126,6 +126,9 @@ router.post('/', authenticate, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    const bizFee = await client.query('SELECT delivery_fee FROM businesses WHERE id = $1', [req.user.businessId]);
+    const businessDeliveryFee = parseFloat(bizFee.rows[0]?.delivery_fee ?? 2.50);
+
     let subtotal = 0;
     const orderItems = [];
     for (const item of items) {
@@ -151,7 +154,7 @@ router.post('/', authenticate, async (req, res) => {
 
     let discountAmount = 0;
     let promoCodeId = null;
-    const deliveryFee = type === 'delivery' ? 2.50 : 0;
+    const deliveryFee = type === 'delivery' ? businessDeliveryFee : 0;
 
     if (promoCode) {
       const discount = await applyPromoCode(client, promoCode, req.user.businessId, subtotal, deliveryFee);
@@ -225,11 +228,12 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const bizCheck = await client.query('SELECT id FROM businesses WHERE id = $1', [businessId]);
+    const bizCheck = await client.query('SELECT id, delivery_fee FROM businesses WHERE id = $1', [businessId]);
     if (!bizCheck.rows.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Commerce non trouvé' });
     }
+    const businessDeliveryFee = parseFloat(bizCheck.rows[0].delivery_fee ?? 2.50);
 
     let subtotal = 0;
     const orderItems = [];
@@ -252,7 +256,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
 
     let discountAmount = 0;
     let promoCodeId = null;
-    const deliveryFee = type === 'delivery' ? 2.50 : 0;
+    const deliveryFee = type === 'delivery' ? businessDeliveryFee : 0;
 
     if (promoCode) {
       const discount = await applyPromoCode(client, promoCode, businessId, subtotal, deliveryFee);

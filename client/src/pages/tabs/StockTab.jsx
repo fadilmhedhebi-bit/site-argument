@@ -14,6 +14,8 @@ export default function StockTab() {
   const [showPromo, setShowPromo] = useState(null);
   const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', stockAlertThreshold: '5' });
   const [promoForm, setPromoForm] = useState({ code: '', type: 'percentage', value: '', minOrder: '', maxUses: '', expiresAt: '' });
+  const [deliveryFee, setDeliveryFee] = useState('');
+  const [deliveryFeeSaved, setDeliveryFeeSaved] = useState(false);
 
   const load = () => {
     Promise.all([
@@ -24,7 +26,18 @@ export default function StockTab() {
     ]).then(([p, c, a, pr]) => { setProducts(p); setCategories(c); setAlerts(a); setPromos(pr); }).catch(console.error);
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    api.get('/auth/business/delivery-fee').then(data => setDeliveryFee(String(data.deliveryFee))).catch(console.error);
+  }, []);
+
+  const saveDeliveryFee = async () => {
+    try {
+      await api.patch('/auth/business/delivery-fee', { deliveryFee: parseFloat(deliveryFee) || 0 });
+      setDeliveryFeeSaved(true);
+      setTimeout(() => setDeliveryFeeSaved(false), 2000);
+    } catch (err) { alert(err.message); }
+  };
 
   const filtered = products.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -238,6 +251,25 @@ export default function StockTab() {
             </div>
           ))}
           {promos.length === 0 && <p className="text-sm col-span-full text-center py-4" style={{ color: t.text3 }}>Aucune promotion</p>}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-heading mb-4" style={{ color: t.text1 }}>Frais de livraison</h3>
+        <div className="rounded-xl p-4" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+          <p className="text-sm mb-3" style={{ color: t.text2 }}>Montant facture au client pour chaque commande en livraison. Mettez 0 pour ne pas facturer de frais.</p>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-[200px]">
+              <input
+                type="number" step="0.01" min="0" value={deliveryFee}
+                onChange={e => { setDeliveryFee(e.target.value); setDeliveryFeeSaved(false); }}
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm pr-8" style={inputStyle} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: t.text2 }}>EUR</span>
+            </div>
+            <button onClick={saveDeliveryFee} className="px-5 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.accent, color: '#fff' }}>
+              {deliveryFeeSaved ? 'Enregistre !' : 'Enregistrer'}
+            </button>
+          </div>
         </div>
       </div>
 

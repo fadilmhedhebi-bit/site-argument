@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
 
-const DELIVERY_FEE = 2.50;
-
 export default function useCart(businessId) {
   const [cart, setCart] = useState([]);
   const [promoResult, setPromoResult] = useState(null);
   const [orderType, setOrderType] = useState('delivery');
+  const [businessDeliveryFee, setBusinessDeliveryFee] = useState(0);
 
   const addToCart = (product) => {
     setCart(prev => {
@@ -28,8 +27,8 @@ export default function useCart(businessId) {
       : promoResult.type === 'fixed' ? parseFloat(promoResult.value) : 0)
     : 0;
   const freeDelivery = promoResult?.type === 'free_delivery';
-  const hasDeliveryFee = orderType === 'delivery';
-  const effectiveDeliveryFee = hasDeliveryFee && !freeDelivery ? DELIVERY_FEE : 0;
+  const hasDeliveryFee = orderType === 'delivery' && businessDeliveryFee > 0;
+  const effectiveDeliveryFee = hasDeliveryFee && !freeDelivery ? businessDeliveryFee : 0;
   const total = Math.max(0, subtotal + effectiveDeliveryFee - discount);
   const itemCount = cart.reduce((s, c) => s + c.qty, 0);
 
@@ -46,8 +45,9 @@ export default function useCart(businessId) {
   return {
     cart, addToCart, updateQty, clearCart,
     subtotal, discount, freeDelivery, total, itemCount,
-    deliveryFee: DELIVERY_FEE,
+    deliveryFee: businessDeliveryFee,
     promoResult, validatePromo, resetPromo,
     orderType, setOrderType, hasDeliveryFee,
+    setBusinessDeliveryFee,
   };
 }

@@ -41,6 +41,7 @@ export default function CustomerPage() {
     subtotal, discount, freeDelivery, total, itemCount,
     deliveryFee, promoResult, validatePromo, resetPromo,
     orderType, setOrderType, hasDeliveryFee,
+    setBusinessDeliveryFee,
   } = useCart(businessId);
   const [orderStep, setOrderStep] = useState('menu');
   const [orderForm, setOrderForm] = useState({ deliveryAddress: '', deliveryNotes: '', paymentMethod: 'cash', promoCode: '', tableNumber: '' });
@@ -120,6 +121,7 @@ export default function CustomerPage() {
       setLoyalty(loyaltyData);
       setOrders(ordersList);
       setMenu(menuData);
+      setBusinessDeliveryFee(parseFloat(menuData.business?.delivery_fee ?? 0));
     } catch (err) {
       if (err.message.includes('Token') || err.message.includes('401')) logout();
     }

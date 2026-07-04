@@ -28,6 +28,7 @@ export default function CommandesTab() {
   const [drivers, setDrivers] = useState([]);
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [businessDeliveryFee, setBusinessDeliveryFee] = useState(0);
   const { t } = useTheme();
   const statusStyles = useStatusStyles();
 
@@ -39,6 +40,7 @@ export default function CommandesTab() {
     loadOrders();
     api.get('/products').then(setProducts).catch(console.error);
     api.get('/auth/drivers').then(setDrivers).catch(console.error);
+    api.get('/auth/business/delivery-fee').then(data => setBusinessDeliveryFee(data.deliveryFee)).catch(console.error);
   }, []);
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
@@ -280,6 +282,7 @@ export default function CommandesTab() {
       {showCreate && (
         <CreateOrderModal
           products={products}
+          businessDeliveryFee={businessDeliveryFee}
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); loadOrders(); }}
         />
@@ -288,7 +291,7 @@ export default function CommandesTab() {
   );
 }
 
-function CreateOrderModal({ products, onClose, onCreated }) {
+function CreateOrderModal({ products, businessDeliveryFee = 0, onClose, onCreated }) {
   const { t } = useTheme();
   const [step, setStep] = useState('type');
   const [orderType, setOrderType] = useState(null);
@@ -326,7 +329,7 @@ function CreateOrderModal({ products, onClose, onCreated }) {
   const removeFromCart = (id) => setCart(prev => prev.filter(c => c.id !== id));
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
-  const deliveryFee = orderType === 'delivery' ? 2.50 : 0;
+  const deliveryFee = orderType === 'delivery' ? businessDeliveryFee : 0;
   const total = subtotal + deliveryFee;
 
   const submit = async () => {
@@ -362,7 +365,7 @@ function CreateOrderModal({ products, onClose, onCreated }) {
         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
       </svg>
     )},
-    { id: 'delivery', label: 'Livraison', desc: 'Livraison a domicile (+2.50 EUR)', icon: (
+    { id: 'delivery', label: 'Livraison', desc: businessDeliveryFee > 0 ? `Livraison a domicile (+${businessDeliveryFee.toFixed(2)} EUR)` : 'Livraison a domicile', icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
       </svg>
