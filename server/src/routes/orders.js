@@ -388,7 +388,7 @@ router.patch('/:id/status', authenticate, async (req, res) => {
     await client.query('BEGIN');
 
     const current = await client.query(
-      'SELECT id, status, order_number, business_id FROM orders WHERE id = $1 AND business_id = $2',
+      'SELECT id, status, order_number, business_id, order_type FROM orders WHERE id = $1 AND business_id = $2',
       [req.params.id, req.user.businessId]
     );
     if (!current.rows.length) {
@@ -397,9 +397,16 @@ router.patch('/:id/status', authenticate, async (req, res) => {
     }
 
     const currentStatus = current.rows[0].status;
+    const orderType = current.rows[0].order_type || 'delivery';
+
     if (['delivered', 'cancelled'].includes(currentStatus) && status !== 'problem') {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: `Impossible de modifier une commande ${currentStatus === 'delivered' ? 'livrée' : 'annulée'}` });
+    }
+
+    if (status === 'delivered' && orderType === 'delivery' && !['driver', 'manager_driver'].includes(req.user.role)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Seul le livreur peut marquer une livraison comme livrée' });
     }
 
     let extraSql = '';

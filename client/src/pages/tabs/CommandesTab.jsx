@@ -20,7 +20,11 @@ const statusLabels = {
   in_delivery: 'En livraison', delivered: 'Livrée', cancelled: 'Annulée', problem: 'Problème',
 };
 const orderTypeLabels = { dine_in: 'Sur place', takeaway: 'Emporter', delivery: 'Livraison' };
-const statusFlow = ['pending', 'confirmed', 'preparing', 'ready', 'in_delivery', 'delivered'];
+const statusFlowByType = {
+  dine_in: ['pending', 'preparing', 'ready'],
+  takeaway: ['pending', 'preparing', 'ready'],
+  delivery: ['pending', 'preparing', 'in_delivery'],
+};
 
 export default function CommandesTab() {
   const [orders, setOrders] = useState([]);
@@ -43,7 +47,11 @@ export default function CommandesTab() {
     api.get('/auth/business/delivery-fee').then(data => setBusinessDeliveryFee(data.deliveryFee)).catch(console.error);
   }, []);
 
-  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  const activeOrders = orders.filter(o => {
+    if (['delivered', 'cancelled'].includes(o.status)) return false;
+    if (['dine_in', 'takeaway'].includes(o.order_type) && o.status === 'ready') return false;
+    return true;
+  });
 
   const updateStatus = async (id, status) => {
     try {
@@ -77,9 +85,10 @@ export default function CommandesTab() {
     } catch (err) { alert(err.message); }
   };
 
-  const nextStatus = (current) => {
-    const idx = statusFlow.indexOf(current);
-    return idx >= 0 && idx < statusFlow.length - 1 ? statusFlow[idx + 1] : null;
+  const nextStatus = (current, orderType) => {
+    const flow = statusFlowByType[orderType] || statusFlowByType.delivery;
+    const idx = flow.indexOf(current);
+    return idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : null;
   };
 
   return (
@@ -154,11 +163,11 @@ export default function CommandesTab() {
                   )}
                 </div>
                 <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
-                  {nextStatus(o.status) && (
-                    <button onClick={() => updateStatus(o.id, nextStatus(o.status))}
+                  {nextStatus(o.status, o.order_type) && (
+                    <button onClick={() => updateStatus(o.id, nextStatus(o.status, o.order_type))}
                       className="text-xs px-3 py-1.5 rounded-lg font-semibold"
                       style={{ backgroundColor: t.greenBg, color: t.greenText }}>
-                      {statusLabels[nextStatus(o.status)]}
+                      {statusLabels[nextStatus(o.status, o.order_type)]}
                     </button>
                   )}
                   {!['delivered', 'cancelled'].includes(o.status) && (
