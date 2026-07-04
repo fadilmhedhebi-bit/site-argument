@@ -302,12 +302,16 @@ function CreateOrderModal({ products, businessDeliveryFee = 0, onClose, onCreate
     tableNumber: '',
   });
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const available = products.filter(p => p.is_available && p.stock_quantity > 0);
-  const searchFiltered = search
-    ? available.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-    : available;
+  const categories = [...new Set(available.map(p => p.category_name).filter(Boolean))];
+  const searchFiltered = available.filter(p => {
+    if (selectedCategory && p.category_name !== selectedCategory) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   const addToCart = (product) => {
     setCart(prev => {
@@ -428,6 +432,22 @@ function CreateOrderModal({ products, businessDeliveryFee = 0, onClose, onCreate
               onChange={e => setSearch(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm mb-2 focus:outline-none"
               style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+            {categories.length > 0 && (
+              <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
+                <button onClick={() => setSelectedCategory(null)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={!selectedCategory ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.tabBg, color: t.text2 }}>
+                  Tout
+                </button>
+                {categories.map(cat => (
+                  <button key={cat} onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                    className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+                    style={selectedCategory === cat ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.tabBg, color: t.text2 }}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
               {searchFiltered.map(p => {
                 const inCart = cart.find(c => c.id === p.id);
