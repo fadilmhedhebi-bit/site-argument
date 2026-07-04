@@ -21,9 +21,9 @@ const statusLabels = {
 };
 const orderTypeLabels = { dine_in: 'Sur place', takeaway: 'Emporter', delivery: 'Livraison' };
 const statusFlowByType = {
-  dine_in: ['pending', 'preparing', 'ready'],
-  takeaway: ['pending', 'preparing', 'ready'],
-  delivery: ['pending', 'preparing', 'in_delivery'],
+  dine_in: ['preparing', 'ready'],
+  takeaway: ['preparing', 'ready'],
+  delivery: ['preparing', 'in_delivery'],
 };
 
 export default function CommandesTab() {

@@ -169,12 +169,12 @@ router.post('/', authenticate, async (req, res) => {
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
        delivery_address, delivery_latitude, delivery_longitude, delivery_notes,
        subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id,
-       order_type, table_number)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+       order_type, table_number, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
       [req.user.businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
        deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
        subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
-       type, tableNumber || null]
+       type, tableNumber || null, 'preparing']
     );
 
     for (const item of orderItems) {
@@ -186,7 +186,7 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     await client.query(
-      `INSERT INTO order_status_history (order_id, status, changed_by) VALUES ($1, 'pending', $2)`,
+      `INSERT INTO order_status_history (order_id, status, changed_by) VALUES ($1, 'preparing', $2)`,
       [orderResult.rows[0].id, req.user.id]
     );
 
@@ -271,13 +271,13 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
        delivery_address, delivery_latitude, delivery_longitude, delivery_notes,
        subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id, customer_id,
-       order_type, table_number)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+       order_type, table_number, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
       [businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
        deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
        subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
        customerId && UUID_RE.test(customerId) ? customerId : null,
-       type, tableNumber || null]
+       type, tableNumber || null, 'preparing']
     );
 
     for (const item of orderItems) {
@@ -289,7 +289,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
     }
 
     await client.query(
-      `INSERT INTO order_status_history (order_id, status) VALUES ($1, 'pending')`,
+      `INSERT INTO order_status_history (order_id, status) VALUES ($1, 'preparing')`,
       [orderResult.rows[0].id]
     );
 
