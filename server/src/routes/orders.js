@@ -97,11 +97,15 @@ router.post('/', authenticate, async (req, res) => {
     customerName, customerPhone, customerEmail, deliveryAddress,
     deliveryLatitude, deliveryLongitude, deliveryNotes,
     paymentMethod, items, promoCode,
+    orderType, tableNumber,
   } = req.body;
+
+  const type = ['dine_in', 'takeaway', 'delivery'].includes(orderType) ? orderType : 'delivery';
 
   if (!customerName?.trim()) return res.status(400).json({ error: 'Nom du client requis' });
   if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone du client requis' });
-  if (!deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'delivery' && !deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'dine_in' && !tableNumber) return res.status(400).json({ error: 'Numéro de table requis' });
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Au moins un article requis' });
 
   const validPayments = ['cash', 'card', 'meal_voucher'];
@@ -147,7 +151,7 @@ router.post('/', authenticate, async (req, res) => {
 
     let discountAmount = 0;
     let promoCodeId = null;
-    const deliveryFee = 2.50;
+    const deliveryFee = type === 'delivery' ? 2.50 : 0;
 
     if (promoCode) {
       const discount = await applyPromoCode(client, promoCode, req.user.businessId, subtotal, deliveryFee);
@@ -161,11 +165,13 @@ router.post('/', authenticate, async (req, res) => {
     const orderResult = await client.query(
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
        delivery_address, delivery_latitude, delivery_longitude, delivery_notes,
-       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+       subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id,
+       order_type, table_number)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
       [req.user.businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
-       deliveryAddress.trim(), deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
-       subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId]
+       deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
+       subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
+       type, tableNumber || null]
     );
 
     for (const item of orderItems) {

@@ -4,12 +4,14 @@ import { useTheme } from '../../ThemeContext';
 
 const typeLabels = { sale: 'Vente', refund: 'Remboursement', expense: 'Dépense', deposit: 'Dépôt', withdrawal: 'Retrait' };
 const methodLabels = { cash: 'Espèces', card: 'Carte', meal_voucher: 'Ticket resto' };
+const orderTypeLabels = { dine_in: 'Sur place', takeaway: 'Emporter', delivery: 'Livraison' };
 
 export default function CaisseTab() {
   const { t } = useTheme();
   const [session, setSession] = useState(null);
   const [history, setHistory] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [openFloat, setOpenFloat] = useState('');
   const [closeAmount, setCloseAmount] = useState('');
   const [closeNotes, setCloseNotes] = useState('');
@@ -35,7 +37,22 @@ export default function CaisseTab() {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadPendingOrders = async () => {
+    try {
+      const allOrders = await api.get('/orders?limit=200');
+      const pending = allOrders.filter(o =>
+        ['dine_in', 'takeaway'].includes(o.order_type) &&
+        !['cancelled'].includes(o.status) &&
+        o.payment_status !== 'paid'
+      );
+      setPendingOrders(pending);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    load();
+    loadPendingOrders();
+  }, []);
 
   const openSession = async () => {
     if (!openFloat || isNaN(openFloat)) return alert('Montant invalide');
@@ -56,6 +73,22 @@ export default function CaisseTab() {
     } catch (err) { alert(err.message); }
   };
 
+  const encaisserOrder = async (order, paymentMethod) => {
+    if (!session) return alert('Veuillez ouvrir la caisse d\'abord');
+    try {
+      await api.post('/caisse/transaction', {
+        type: 'sale',
+        paymentMethod,
+        amount: parseFloat(order.total),
+        label: `${order.order_number} — ${order.customer_name} (${orderTypeLabels[order.order_type]})`,
+        orderId: order.id,
+      });
+      await api.patch(`/orders/${order.id}/status`, { status: 'delivered' });
+      load();
+      loadPendingOrders();
+    } catch (err) { alert(err.message); }
+  };
+
   const closeSession = async () => {
     if (!closeAmount || isNaN(closeAmount)) return alert('Montant invalide');
     try {
@@ -73,15 +106,48 @@ export default function CaisseTab() {
     return (
       <div className="space-y-6">
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-          <p className="text-4xl mb-4"></p>
+          <div className="mb-4" style={{ color: t.text3 }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/><path d="M2 10h20"/>
+            </svg>
+          </div>
           <h3 className="text-lg font-heading mb-2" style={{ color: t.text1 }}>Ouvrir la caisse</h3>
-          <p className="text-sm mb-6" style={{ color: t.text2 }}>Saisissez le fond de caisse pour démarrer la journée</p>
+          <p className="text-sm mb-6" style={{ color: t.text2 }}>Saisissez le fond de caisse pour demarrer la journee</p>
           <div className="flex gap-3 max-w-xs mx-auto">
-            <input type="number" step="0.01" min="0" placeholder="Fond de caisse (€)" value={openFloat} onChange={e => setOpenFloat(e.target.value)}
+            <input type="number" step="0.01" min="0" placeholder="Fond de caisse (EUR)" value={openFloat} onChange={e => setOpenFloat(e.target.value)}
               className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
             <button onClick={openSession} className="px-6 py-2.5 rounded-lg font-semibold text-sm" style={{ backgroundColor: t.accent, color: '#fff' }}>Ouvrir</button>
           </div>
         </div>
+
+        {pendingOrders.length > 0 && (
+          <div>
+            <h3 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>
+              Commandes a encaisser ({pendingOrders.length})
+            </h3>
+            <p className="text-xs mb-3" style={{ color: t.orangeText }}>Ouvrez la caisse pour encaisser ces commandes</p>
+            <div className="space-y-2">
+              {pendingOrders.map(o => (
+                <div key={o.id} className="rounded-xl p-4" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold" style={{ color: t.accent }}>{o.order_number}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{
+                          backgroundColor: o.order_type === 'dine_in' ? t.greenBg : t.orangeBg,
+                          color: o.order_type === 'dine_in' ? t.greenText : t.orangeText,
+                        }}>
+                        {orderTypeLabels[o.order_type]}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold" style={{ color: t.text1 }}>{parseFloat(o.total).toFixed(2)} €</span>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: t.text2 }}>{o.customer_name}{o.table_number ? ` — Table ${o.table_number}` : ''}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {history.length > 0 && (
           <div>
@@ -97,7 +163,7 @@ export default function CaisseTab() {
                     <p className="font-mono font-bold" style={{ color: t.accent }}>{parseFloat(h.total_sales).toFixed(2)} €</p>
                     {h.difference != null && (
                       <p className="text-xs" style={{ color: parseFloat(h.difference) === 0 ? t.greenText : t.orangeText }}>
-                        Écart : {parseFloat(h.difference) > 0 ? '+' : ''}{parseFloat(h.difference).toFixed(2)} €
+                        Ecart : {parseFloat(h.difference) > 0 ? '+' : ''}{parseFloat(h.difference).toFixed(2)} €
                       </p>
                     )}
                   </div>
@@ -117,7 +183,7 @@ export default function CaisseTab() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Fond de caisse', value: `${parseFloat(session.opening_float).toFixed(2)} €`, accent: t.text1 },
-          { label: 'Espèces', value: `${parseFloat(session.total_cash).toFixed(2)} €`, accent: t.greenText },
+          { label: 'Especes', value: `${parseFloat(session.total_cash).toFixed(2)} €`, accent: t.greenText },
           { label: 'Carte', value: `${parseFloat(session.total_card).toFixed(2)} €`, accent: t.accent },
           { label: 'Ticket resto', value: `${parseFloat(session.total_meal_voucher).toFixed(2)} €`, accent: t.orangeText },
         ].map(s => (
@@ -144,6 +210,19 @@ export default function CaisseTab() {
           </div>
         </div>
       </div>
+
+      {pendingOrders.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: t.text1 }}>
+            Commandes a encaisser ({pendingOrders.length})
+          </h3>
+          <div className="space-y-2">
+            {pendingOrders.map(o => (
+              <OrderEncaissementCard key={o.id} order={o} t={t} onEncaisser={encaisserOrder} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 flex-wrap">
         <button onClick={() => setShowTransaction(true)} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.accent, color: '#fff' }}>+ Transaction</button>
@@ -191,8 +270,8 @@ export default function CaisseTab() {
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle}>
                   <option value="sale">Vente</option>
                   <option value="refund">Remboursement</option>
-                  <option value="expense">Dépense</option>
-                  <option value="deposit">Dépôt</option>
+                  <option value="expense">Depense</option>
+                  <option value="deposit">Depot</option>
                   <option value="withdrawal">Retrait</option>
                 </select>
               </div>
@@ -200,18 +279,18 @@ export default function CaisseTab() {
                 <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Moyen de paiement</label>
                 <select value={txForm.paymentMethod} onChange={e => setTxForm({ ...txForm, paymentMethod: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle}>
-                  <option value="cash">Espèces</option>
+                  <option value="cash">Especes</option>
                   <option value="card">Carte bancaire</option>
                   <option value="meal_voucher">Ticket restaurant</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Montant (€) *</label>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Montant (EUR) *</label>
                 <input type="number" step="0.01" min="0.01" value={txForm.amount} onChange={e => setTxForm({ ...txForm, amount: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               </div>
               <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Libellé</label>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Libelle</label>
                 <input value={txForm.label} onChange={e => setTxForm({ ...txForm, label: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} placeholder="Ex: Table 4, Menu du jour..." />
               </div>
@@ -231,14 +310,14 @@ export default function CaisseTab() {
             <p className="text-sm mb-4" style={{ color: t.text2 }}>Montant attendu en caisse : <strong style={{ color: t.greenText }}>{expected.toFixed(2)} €</strong></p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Montant compté (€) *</label>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: t.text2 }}>Montant compte (EUR) *</label>
                 <input type="number" step="0.01" min="0" value={closeAmount} onChange={e => setCloseAmount(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={inputStyle} />
               </div>
               {closeAmount && !isNaN(closeAmount) && (
                 <div className="rounded-lg p-3 text-center" style={{ backgroundColor: parseFloat(closeAmount) - expected === 0 ? t.greenBg : t.orangeBg }}>
                   <p className="text-sm font-semibold" style={{ color: parseFloat(closeAmount) - expected === 0 ? t.greenText : t.orangeText }}>
-                    Écart : {(parseFloat(closeAmount) - expected) > 0 ? '+' : ''}{(parseFloat(closeAmount) - expected).toFixed(2)} €
+                    Ecart : {(parseFloat(closeAmount) - expected) > 0 ? '+' : ''}{(parseFloat(closeAmount) - expected).toFixed(2)} €
                   </p>
                 </div>
               )}
@@ -255,6 +334,66 @@ export default function CaisseTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function OrderEncaissementCard({ order, t, onEncaisser }) {
+  const [selectedMethod, setSelectedMethod] = useState(order.payment_method || 'cash');
+  const [processing, setProcessing] = useState(false);
+
+  const handleEncaisser = async () => {
+    setProcessing(true);
+    try {
+      await onEncaisser(order, selectedMethod);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm font-bold" style={{ color: t.accent }}>{order.order_number}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+            style={{
+              backgroundColor: order.order_type === 'dine_in' ? t.greenBg : t.orangeBg,
+              color: order.order_type === 'dine_in' ? t.greenText : t.orangeText,
+            }}>
+            {orderTypeLabels[order.order_type]}
+          </span>
+        </div>
+        <span className="font-mono text-lg font-bold" style={{ color: t.accent }}>{parseFloat(order.total).toFixed(2)} €</span>
+      </div>
+
+      <p className="text-xs mb-1" style={{ color: t.text2 }}>
+        {order.customer_name}
+        {order.table_number ? ` — Table ${order.table_number}` : ''}
+      </p>
+      <p className="text-[10px] mb-3" style={{ color: t.text3 }}>
+        {new Date(order.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+      </p>
+
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1 flex-1">
+          {[{ v: 'cash', l: 'Especes' }, { v: 'card', l: 'Carte' }, { v: 'meal_voucher', l: 'Ticket' }].map(m => (
+            <button key={m.v} onClick={() => setSelectedMethod(m.v)}
+              className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+              style={{
+                backgroundColor: selectedMethod === m.v ? t.accent : t.tabBg,
+                color: selectedMethod === m.v ? '#fff' : t.text2,
+              }}>
+              {m.l}
+            </button>
+          ))}
+        </div>
+        <button onClick={handleEncaisser} disabled={processing}
+          className="px-4 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+          style={{ backgroundColor: t.greenText, color: '#fff' }}>
+          {processing ? '...' : 'Encaisser'}
+        </button>
+      </div>
     </div>
   );
 }
