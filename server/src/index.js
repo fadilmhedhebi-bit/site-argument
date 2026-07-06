@@ -17,7 +17,10 @@ import customerRoutes from './routes/customers.js';
 import tableRoutes from './routes/tables.js';
 import reservationRoutes from './routes/reservations.js';
 import caisseRoutes from './routes/caisse.js';
+import billingRoutes, { stripeWebhookHandler } from './routes/billing.js';
+import platformAdminRoutes from './routes/platformAdmin.js';
 import { verifySocketToken } from './middleware/auth.js';
+import { requireActiveSubscription } from './middleware/subscription.js';
 import pool from './config/db.js';
 
 dotenv.config();
@@ -37,8 +40,14 @@ const io = new Server(server, {
 // ============================================================
 
 app.use(cors());
+
+// Le webhook Stripe doit recevoir le corps brut (signature calculee dessus) :
+// il est monte AVANT express.json() qui parserait/alterrait le body sinon.
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
+
 app.use(express.json({ limit: '5mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(requireActiveSubscription);
 
 app.use((err, _req, res, _next) => {
   if (err.type === 'entity.parse.failed') {
@@ -63,6 +72,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/caisse', caisseRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/platform-admin', platformAdminRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

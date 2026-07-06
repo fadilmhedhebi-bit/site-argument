@@ -4,6 +4,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { useTheme } from '../ThemeContext';
 import { shadows } from '../theme';
 import RestoLabLogo from './RestoLabLogo';
+import SubscriptionGate from './SubscriptionGate';
 
 const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Livreur', driver: 'Livreur' };
 
@@ -95,9 +96,11 @@ export default function Layout() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
-        <Outlet />
-      </main>
+      <SubscriptionGate>
+        <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
+          <Outlet />
+        </main>
+      </SubscriptionGate>
     </div>
   );
 }

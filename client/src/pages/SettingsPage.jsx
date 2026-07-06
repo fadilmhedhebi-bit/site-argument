@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
 import { shadows } from '../theme';
+
+const STATUS_LABEL = {
+  trialing: 'Période d\'essai',
+  active: 'Actif',
+  past_due: 'Paiement en échec',
+  canceled: 'Résilié',
+  suspended: 'Suspendu',
+};
 
 const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
@@ -20,6 +28,38 @@ export default function SettingsPage() {
   const [passwordErr, setPasswordErr] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [billing, setBilling] = useState(null);
+  const [billingErr, setBillingErr] = useState('');
+  const [billingLoading, setBillingLoading] = useState(false);
+  const isManager = ['manager', 'manager_driver'].includes(user?.role);
+
+  useEffect(() => {
+    if (isManager) api.get('/billing/status').then(setBilling).catch(() => {});
+  }, [isManager]);
+
+  const goToCheckout = async () => {
+    setBillingErr('');
+    setBillingLoading(true);
+    try {
+      const { url } = await api.post('/billing/checkout', {});
+      window.location.href = url;
+    } catch (err) {
+      setBillingErr(err.message);
+      setBillingLoading(false);
+    }
+  };
+
+  const goToPortal = async () => {
+    setBillingErr('');
+    setBillingLoading(true);
+    try {
+      const { url } = await api.post('/billing/portal', {});
+      window.location.href = url;
+    } catch (err) {
+      setBillingErr(err.message);
+      setBillingLoading(false);
+    }
+  };
 
   const avatarUrl = user?.avatarUrl ? `${API_BASE.replace('/api', '')}${user.avatarUrl}` : null;
 
@@ -184,6 +224,50 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Facturation */}
+      {isManager && billing && (
+        <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Facturation</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="font-medium" style={{ color: t.text1 }}>Statut de l'abonnement</p>
+              <p className="text-xs mt-0.5" style={{ color: t.text2 }}>
+                {billing.subscription_status === 'trialing' && billing.trial_ends_at
+                  ? `Essai jusqu'au ${new Date(billing.trial_ends_at).toLocaleDateString('fr-FR')}`
+                  : billing.current_period_end
+                  ? `Prochain renouvellement le ${new Date(billing.current_period_end).toLocaleDateString('fr-FR')}`
+                  : 'Aucun abonnement Stripe actif'}
+              </p>
+            </div>
+            <span
+              className="text-xs px-2.5 py-1 rounded-full font-semibold"
+              style={
+                billing.subscription_status === 'active'
+                  ? { backgroundColor: t.greenBg, color: t.greenText }
+                  : ['past_due', 'suspended', 'canceled'].includes(billing.subscription_status)
+                  ? { backgroundColor: t.orangeBg, color: t.orangeText }
+                  : { backgroundColor: t.blueBg, color: t.blueText }
+              }
+            >
+              {STATUS_LABEL[billing.subscription_status] || billing.subscription_status}
+            </span>
+          </div>
+          {billingErr && <p className="text-xs mb-3" style={{ color: '#D97706' }}>{billingErr}</p>}
+          <button
+            onClick={billing.subscription_status === 'active' || billing.subscription_status === 'past_due' ? goToPortal : goToCheckout}
+            disabled={billingLoading}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            {billingLoading
+              ? 'Redirection...'
+              : billing.subscription_status === 'active' || billing.subscription_status === 'past_due'
+              ? 'Gérer mon abonnement'
+              : 'Démarrer mon abonnement'}
+          </button>
+        </div>
+      )}
 
       {/* Password */}
       <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>

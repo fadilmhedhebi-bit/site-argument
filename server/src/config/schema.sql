@@ -620,3 +620,36 @@ DROP TRIGGER IF EXISTS trg_period_closings_immutable ON period_closings;
 CREATE TRIGGER trg_period_closings_immutable
   BEFORE UPDATE OR DELETE ON period_closings
   FOR EACH ROW EXECUTE FUNCTION prevent_modification();
+
+-- ============================================================
+-- ABONNEMENT SAAS (facturation Stripe des commerces clients)
+-- ============================================================
+
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) NOT NULL DEFAULT 'trialing'
+  CHECK (subscription_status IN ('trialing', 'active', 'past_due', 'canceled', 'suspended'));
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'standard';
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days');
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ;
+-- Date du premier echec de prelevement de la serie en cours ; sert de depart
+-- a la periode de grace (voir GRACE_PERIOD_DAYS cote code). Remise a NULL des
+-- qu'un paiement repasse.
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS payment_failed_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_businesses_stripe_customer ON businesses(stripe_customer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_businesses_stripe_subscription ON businesses(stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL;
+
+-- Super-admins RestoLab : separes de "users" pour ne jamais melanger un
+-- compte plateforme (acces a tous les commerces) avec un compte scope a un
+-- seul business_id.
+CREATE TABLE IF NOT EXISTS platform_admins (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

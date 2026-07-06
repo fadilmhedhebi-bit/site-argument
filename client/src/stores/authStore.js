@@ -36,7 +36,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'restolab-auth',
-      onRehydrate: () => (state) => {
+      onRehydrateStorage: () => (state) => {
         if (state?.token) {
           setApiToken(state.token);
         }
