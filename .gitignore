@@ -1,6 +1,7 @@
 node_modules
 dist
 .env
+client/.env.capacitor
 *.log
 server/uploads/avatars/*
 !server/uploads/avatars/.gitkeep
