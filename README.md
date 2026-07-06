@@ -14,7 +14,7 @@ Application de gestion de restaurant (commandes, stock, equipe, livraison) avec 
 ```bash
 # 1. Copier la config et creer la base de donnees
 cp server/.env.example server/.env
-createdb tournee_snack
+createdb restolab
 
 # 2. Installer, initialiser le schema et charger les donnees de demo
 npm run setup
@@ -54,8 +54,8 @@ Le frontend demarre sur **http://localhost:5173** et le backend sur **http://loc
 3. Cliquez **New** > **Blueprint**
 4. Connectez votre repo GitHub
 5. Render detecte automatiquement `render.yaml` et cree :
-   - Une base PostgreSQL (`tournee-snack-db`)
-   - Un web service (`tournee-snack-express`) qui sert le frontend et l'API
+   - Une base PostgreSQL (`restolab-db`)
+   - Un web service (`restolab-web`) qui sert le frontend et l'API
 6. Attendez que le build et le deploy se terminent
 7. Chargez les donnees de demo :
    - Allez dans le shell de votre web service (onglet **Shell**)
@@ -118,7 +118,7 @@ Voir `server/.env.example` pour la configuration complete.
 
 | Variable | Description | Defaut |
 |----------|-------------|--------|
-| `DATABASE_URL` | URL PostgreSQL | `postgresql://postgres:postgres@localhost:5432/tournee_snack` |
-| `JWT_SECRET` | Secret JWT | `tse-dev-secret-key-change-in-production` |
+| `DATABASE_URL` | URL PostgreSQL | `postgresql://postgres:postgres@localhost:5432/restolab` |
+| `JWT_SECRET` | Secret JWT | `restolab-dev-secret-key-change-in-production` |
 | `PORT` | Port du backend | `3001` |
 | `VITE_API_URL` | URL de l'API (build frontend) | vide = meme origine |

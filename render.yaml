@@ -1,11 +1,11 @@
 databases:
-  - name: tournee-snack-db
+  - name: restolab-db
     plan: free
-    databaseName: tournee_snack
+    databaseName: restolab
 
 services:
   - type: web
-    name: tournee-snack-express
+    name: restolab-web
     runtime: node
     plan: free
     buildCommand: npm run install:all && npm run build && npm run db:init
@@ -14,7 +14,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: tournee-snack-db
+          name: restolab-db
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
