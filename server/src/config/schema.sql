@@ -482,3 +482,141 @@ ALTER TABLE orders ALTER COLUMN delivery_address DROP NOT NULL;
 
 -- Configurable delivery fee per business
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 2.50;
+
+-- ============================================================
+-- FISCAL COMPLIANCE (loi anti-fraude TVA - inalterabilite,
+-- securisation, conservation et archivage des donnees - ISCA)
+-- ============================================================
+
+-- Chaque commande encaissee (payment_status = 'paid') est un ticket fiscal :
+-- elle recoit un numero de sequence et un hash chaine au ticket precedent.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fiscal_sequence BIGINT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fiscal_prev_hash VARCHAR(64);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fiscal_hash VARCHAR(64);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_fiscal_sequence ON orders(business_id, fiscal_sequence) WHERE fiscal_sequence IS NOT NULL;
+
+-- Une fois encaissee, une commande ne peut plus voir ses montants/moyen de
+-- paiement/numero modifies (les statuts operationnels comme "problem" restent
+-- modifiables, seuls les champs fiscaux sont proteges).
+CREATE OR REPLACE FUNCTION protect_paid_order_financials() RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.payment_status = 'paid' THEN
+    IF NEW.subtotal IS DISTINCT FROM OLD.subtotal
+       OR NEW.delivery_fee IS DISTINCT FROM OLD.delivery_fee
+       OR NEW.discount_amount IS DISTINCT FROM OLD.discount_amount
+       OR NEW.total IS DISTINCT FROM OLD.total
+       OR NEW.payment_method IS DISTINCT FROM OLD.payment_method
+       OR NEW.order_number IS DISTINCT FROM OLD.order_number
+       OR NEW.fiscal_sequence IS DISTINCT FROM OLD.fiscal_sequence
+       OR NEW.fiscal_prev_hash IS DISTINCT FROM OLD.fiscal_prev_hash
+       OR NEW.fiscal_hash IS DISTINCT FROM OLD.fiscal_hash
+    THEN
+      RAISE EXCEPTION 'Modification interdite: ticket % deja encaisse (loi anti-fraude TVA)', OLD.order_number;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_paid_order_financials ON orders;
+CREATE TRIGGER trg_protect_paid_order_financials
+  BEFORE UPDATE ON orders
+  FOR EACH ROW EXECUTE FUNCTION protect_paid_order_financials();
+
+CREATE OR REPLACE FUNCTION prevent_paid_order_delete() RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.payment_status = 'paid' THEN
+    RAISE EXCEPTION 'Suppression interdite: ticket % deja encaisse (loi anti-fraude TVA)', OLD.order_number;
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_paid_order_delete ON orders;
+CREATE TRIGGER trg_prevent_paid_order_delete
+  BEFORE DELETE ON orders
+  FOR EACH ROW EXECUTE FUNCTION prevent_paid_order_delete();
+
+-- Les lignes d'un ticket encaisse sont elles aussi protegees.
+CREATE OR REPLACE FUNCTION protect_paid_order_items() RETURNS TRIGGER AS $$
+DECLARE
+  is_paid BOOLEAN;
+BEGIN
+  SELECT (payment_status = 'paid') INTO is_paid FROM orders WHERE id = OLD.order_id;
+  IF is_paid THEN
+    RAISE EXCEPTION 'Modification interdite: lignes d''un ticket deja encaisse (loi anti-fraude TVA)';
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_paid_order_items ON order_items;
+CREATE TRIGGER trg_protect_paid_order_items
+  BEFORE UPDATE OR DELETE ON order_items
+  FOR EACH ROW EXECUTE FUNCTION protect_paid_order_items();
+
+-- Generic trigger: interdit toute modification/suppression sur les tables
+-- purement append-only du registre fiscal (cash_transactions, clotures).
+CREATE OR REPLACE FUNCTION prevent_modification() RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'Modification/suppression interdite: enregistrement fiscal inalterable (table %)', TG_TABLE_NAME;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Journal de caisse (cash_transactions) : chaine + totalement immuable.
+ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES businesses(id) ON DELETE CASCADE;
+UPDATE cash_transactions ct SET business_id = cs.business_id FROM cash_sessions cs WHERE ct.session_id = cs.id AND ct.business_id IS NULL;
+ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS sequence_number BIGINT;
+ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS prev_hash VARCHAR(64);
+ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS hash VARCHAR(64);
+
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_business ON cash_transactions(business_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cash_transactions_fiscal_sequence ON cash_transactions(business_id, sequence_number) WHERE sequence_number IS NOT NULL;
+
+DROP TRIGGER IF EXISTS trg_cash_transactions_immutable ON cash_transactions;
+CREATE TRIGGER trg_cash_transactions_immutable
+  BEFORE UPDATE OR DELETE ON cash_transactions
+  FOR EACH ROW EXECUTE FUNCTION prevent_modification();
+
+-- Clotures journalieres : chainees + immuables (plus de re-cloture possible).
+ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS sequence_number BIGINT;
+ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS prev_hash VARCHAR(64);
+ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS hash VARCHAR(64);
+
+DROP TRIGGER IF EXISTS trg_daily_closings_immutable ON daily_closings;
+CREATE TRIGGER trg_daily_closings_immutable
+  BEFORE UPDATE OR DELETE ON daily_closings
+  FOR EACH ROW EXECUTE FUNCTION prevent_modification();
+
+-- Clotures mensuelles et annuelles (meme principe que les clotures
+-- journalieres, granularite differente).
+CREATE TABLE IF NOT EXISTS period_closings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  period_type VARCHAR(10) NOT NULL CHECK (period_type IN ('monthly', 'annual')),
+  period_key VARCHAR(7) NOT NULL,
+  total_orders INT DEFAULT 0,
+  total_delivered INT DEFAULT 0,
+  total_cancelled INT DEFAULT 0,
+  total_problems INT DEFAULT 0,
+  revenue_cash DECIMAL(10,2) DEFAULT 0,
+  revenue_card DECIMAL(10,2) DEFAULT 0,
+  revenue_meal_voucher DECIMAL(10,2) DEFAULT 0,
+  revenue_total DECIMAL(10,2) DEFAULT 0,
+  total_discount DECIMAL(10,2) DEFAULT 0,
+  total_delivery_fees DECIMAL(10,2) DEFAULT 0,
+  notes TEXT,
+  closed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  sequence_number BIGINT,
+  prev_hash VARCHAR(64),
+  hash VARCHAR(64),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_period_closings_unique ON period_closings(business_id, period_type, period_key);
+
+DROP TRIGGER IF EXISTS trg_period_closings_immutable ON period_closings;
+CREATE TRIGGER trg_period_closings_immutable
+  BEFORE UPDATE OR DELETE ON period_closings
+  FOR EACH ROW EXECUTE FUNCTION prevent_modification();

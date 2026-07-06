@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { lockChain, nextLink, computeHash, verifyChain, cashTxPayload } from '../utils/fiscalChain.js';
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -77,39 +78,81 @@ router.post('/transaction', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Montant invalide' });
   }
 
+  const client = await pool.connect();
   try {
-    const session = await pool.query(
+    await client.query('BEGIN');
+
+    const session = await client.query(
       "SELECT id FROM cash_sessions WHERE business_id = $1 AND status = 'open'",
       [req.user.businessId]
     );
     if (!session.rows.length) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Aucune session de caisse ouverte' });
     }
 
     const sessionId = session.rows[0].id;
+    const businessId = req.user.businessId;
     const parsedAmount = parseFloat(amount);
+    const trimmedLabel = label?.trim() || null;
 
-    await pool.query(
-      `INSERT INTO cash_transactions (session_id, type, payment_method, amount, label, order_id, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [sessionId, type, paymentMethod, parsedAmount, label?.trim() || null, orderId || null, req.user.id]
+    await lockChain(client, 'cash_transactions', businessId);
+    const { sequenceNumber, prevHash } = await nextLink(client, {
+      table: 'cash_transactions',
+      whereSql: 'business_id = $1 AND sequence_number IS NOT NULL',
+      whereParams: [businessId],
+    });
+    const hash = computeHash(prevHash, sequenceNumber, cashTxPayload({
+      business_id: businessId, session_id: sessionId, type, payment_method: paymentMethod,
+      amount: parsedAmount, label: trimmedLabel, order_id: orderId || null,
+    }));
+
+    await client.query(
+      `INSERT INTO cash_transactions (session_id, business_id, type, payment_method, amount, label, order_id, created_by, sequence_number, prev_hash, hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [sessionId, businessId, type, paymentMethod, parsedAmount, trimmedLabel, orderId || null, req.user.id, sequenceNumber, prevHash, hash]
     );
 
     const sign = ['sale', 'deposit'].includes(type) ? 1 : -1;
     const cashCol = paymentMethod === 'cash' ? 'total_cash' : paymentMethod === 'card' ? 'total_card' : 'total_meal_voucher';
 
-    await pool.query(
+    await client.query(
       `UPDATE cash_sessions SET ${cashCol} = ${cashCol} + $1,
        total_sales = total_sales + $2, transaction_count = transaction_count + 1
        WHERE id = $3`,
       [parsedAmount * sign, parsedAmount * sign, sessionId]
     );
 
-    const updated = await pool.query('SELECT * FROM cash_sessions WHERE id = $1', [sessionId]);
+    const updated = await client.query('SELECT * FROM cash_sessions WHERE id = $1', [sessionId]);
+    await client.query('COMMIT');
     res.json(updated.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Cash transaction error:', err);
     res.status(500).json({ error: 'Erreur lors de l\'enregistrement de la transaction' });
+  } finally {
+    client.release();
+  }
+});
+
+router.get('/verify-chain', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT sequence_number, prev_hash, hash, business_id, session_id, type, payment_method, amount, label, order_id
+       FROM cash_transactions WHERE business_id = $1 AND sequence_number IS NOT NULL ORDER BY sequence_number ASC`,
+      [req.user.businessId]
+    );
+    const entries = result.rows.map(r => ({
+      sequenceNumber: r.sequence_number,
+      prevHash: r.prev_hash,
+      hash: r.hash,
+      payload: cashTxPayload(r),
+    }));
+    const verification = verifyChain(entries);
+    res.json({ ...verification, checkedCount: entries.length });
+  } catch (err) {
+    console.error('Verify cash chain error:', err);
+    res.status(500).json({ error: 'Erreur lors de la vérification' });
   }
 });
 

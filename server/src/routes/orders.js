@@ -3,6 +3,7 @@ import pool from '../config/db.js';
 import { authenticate, authenticateOptional, requireRole } from '../middleware/auth.js';
 import { generateOrderNumber } from '../utils/order-number.js';
 import { getIO } from '../index.js';
+import { lockChain, nextLink, computeHash, orderFiscalPayload } from '../utils/fiscalChain.js';
 
 const router = Router();
 
@@ -388,7 +389,9 @@ router.patch('/:id/status', authenticate, async (req, res) => {
     await client.query('BEGIN');
 
     const current = await client.query(
-      'SELECT id, status, order_number, business_id, order_type FROM orders WHERE id = $1 AND business_id = $2',
+      `SELECT id, status, order_number, business_id, order_type, payment_status,
+       subtotal, delivery_fee, discount_amount, total, payment_method
+       FROM orders WHERE id = $1 AND business_id = $2`,
       [req.params.id, req.user.businessId]
     );
     if (!current.rows.length) {
@@ -396,8 +399,9 @@ router.patch('/:id/status', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }
 
-    const currentStatus = current.rows[0].status;
-    const orderType = current.rows[0].order_type || 'delivery';
+    const order = current.rows[0];
+    const currentStatus = order.status;
+    const orderType = order.order_type || 'delivery';
 
     if (['delivered', 'cancelled'].includes(currentStatus) && status !== 'problem') {
       await client.query('ROLLBACK');
@@ -409,8 +413,6 @@ router.patch('/:id/status', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Seul le livreur peut marquer une livraison comme livrée' });
     }
 
-    let extraSql = '';
-    if (status === 'delivered') extraSql = ', delivered_at = NOW(), payment_status = \'paid\'';
     if (status === 'cancelled' && currentStatus !== 'delivered') {
       // Restore stock on cancellation
       const orderItems = await client.query('SELECT product_id, quantity FROM order_items WHERE order_id = $1', [req.params.id]);
@@ -421,9 +423,38 @@ router.patch('/:id/status', authenticate, async (req, res) => {
       }
     }
 
+    // Ticket encaisse : sur place/a emporter finalisent a "ready", livraison a "delivered".
+    const isPaidTerminal = order.payment_status !== 'paid' && (
+      status === 'delivered' || (status === 'ready' && ['dine_in', 'takeaway'].includes(orderType))
+    );
+
+    const setClauses = ['status = $1', 'updated_at = NOW()'];
+    const params = [status];
+    let idx = 2;
+
+    if (status === 'delivered') {
+      setClauses.push('delivered_at = NOW()');
+    }
+
+    if (isPaidTerminal) {
+      await lockChain(client, 'orders_fiscal', order.business_id);
+      const { sequenceNumber, prevHash } = await nextLink(client, {
+        table: 'orders',
+        whereSql: 'business_id = $1 AND fiscal_sequence IS NOT NULL',
+        whereParams: [order.business_id],
+        sequenceCol: 'fiscal_sequence',
+        hashCol: 'fiscal_hash',
+      });
+      const hash = computeHash(prevHash, sequenceNumber, orderFiscalPayload(order));
+
+      setClauses.push(`payment_status = 'paid'`, `fiscal_sequence = $${idx++}`, `fiscal_prev_hash = $${idx++}`, `fiscal_hash = $${idx++}`);
+      params.push(sequenceNumber, prevHash, hash);
+    }
+
+    params.push(req.params.id);
     const result = await client.query(
-      `UPDATE orders SET status = $1, updated_at = NOW() ${extraSql} WHERE id = $2 RETURNING *`,
-      [status, req.params.id]
+      `UPDATE orders SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`,
+      params
     );
 
     await client.query(
@@ -435,7 +466,7 @@ router.patch('/:id/status', authenticate, async (req, res) => {
 
     notifyBusiness(req.user.businessId, 'order:status', {
       orderId: req.params.id,
-      orderNumber: current.rows[0].order_number,
+      orderNumber: order.order_number,
       status,
     });
 
@@ -495,8 +526,8 @@ router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
   try {
     const existing = await pool.query('SELECT status FROM orders WHERE id = $1 AND business_id = $2', [req.params.id, req.user.businessId]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Commande non trouvée' });
-    if (!['pending', 'confirmed'].includes(existing.rows[0].status)) {
-      return res.status(400).json({ error: 'Modification impossible: commande déjà en préparation ou livrée' });
+    if (existing.rows[0].status !== 'preparing') {
+      return res.status(400).json({ error: 'Modification impossible: commande déjà prête, en livraison ou livrée' });
     }
 
     const result = await pool.query(
