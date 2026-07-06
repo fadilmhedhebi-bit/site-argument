@@ -1,6 +1,6 @@
-# Tournee Snack Express
+# RestoLab
 
-Application de gestion de livraisons pour snacks et restaurants. Gestion des commandes, des tournees, du stock, et suivi GPS en temps reel.
+Application de gestion de restaurant (commandes, stock, equipe, livraison) avec suivi temps reel.
 
 ## Demarrage rapide (local)
 

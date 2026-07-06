@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
 import useCart from '../hooks/useCart';
@@ -75,7 +75,7 @@ export default function ClientCommandePage() {
       <header style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <FoodlyLogo size={28} />
+            <RestoLabLogo size={28} />
             <div>
               <h1 className="text-lg font-bold tracking-[-0.5px]" style={{ color: t.text1 }}>{menu.business?.name || 'Restaurant'}</h1>
             {menu.business?.address && <p className="text-xs" style={{ color: t.text2 }}>{menu.business.address}</p>}

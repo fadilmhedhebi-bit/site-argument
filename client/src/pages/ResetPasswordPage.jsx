@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 import { colors, shadows } from '../theme';
 
 export default function ResetPasswordPage() {
@@ -55,8 +55,8 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: bg }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4"><FoodlyLogo size={64} /></div>
-          <h1 className="text-3xl font-bold text-white tracking-[-1.5px]">foodly</h1>
+          <div className="flex justify-center mb-4"><RestoLabLogo size={64} /></div>
+          <h1 className="text-3xl font-bold text-white tracking-[-1.5px]">restolab</h1>
         </div>
 
         <div className="rounded-2xl p-8" style={{ backgroundColor: t.cardBg }}>

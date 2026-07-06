@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 
 const statusLabels = { confirmed: 'Confirmée', cancelled: 'Annulée', completed: 'Terminée', no_show: 'Non présenté' };
 
@@ -31,7 +31,7 @@ export default function ReservationPublicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <FoodlyLogo size={40} />
+          <RestoLabLogo size={40} />
           <h1 className="text-xl font-bold mt-4 text-gray-800">Réservation introuvable</h1>
           <p className="text-gray-500 mt-2">{error}</p>
         </div>
@@ -45,7 +45,7 @@ export default function ReservationPublicPage() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#f5f7f5' }}>
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md overflow-hidden">
         <div className="px-6 py-5 text-center" style={{ backgroundColor: '#1C8275' }}>
-          <FoodlyLogo size={36} color="#fff" />
+          <RestoLabLogo size={36} color="#fff" />
           <h1 className="text-lg font-bold text-white mt-2">{data.business_name}</h1>
         </div>
 
@@ -98,7 +98,7 @@ export default function ReservationPublicPage() {
         </div>
 
         <div className="px-6 py-4 text-center" style={{ backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
-          <p className="text-xs text-gray-400">Powered by Foodly</p>
+          <p className="text-xs text-gray-400">Powered by RestoLab</p>
         </div>
       </div>
     </div>

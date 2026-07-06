@@ -12,7 +12,7 @@ const transporter = process.env.SMTP_HOST
     })
   : null;
 
-const FROM = process.env.SMTP_FROM || 'Foodly <noreply@foodly.app>';
+const FROM = process.env.SMTP_FROM || 'RestoLab <noreply@restolab.app>';
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 
 async function send(to, subject, html) {
@@ -26,9 +26,9 @@ async function send(to, subject, html) {
 
 export async function sendVerificationEmail(email, token, firstName) {
   const link = `${APP_URL}/verify-email?token=${token}`;
-  await send(email, 'Confirmez votre adresse email — Foodly', `
+  await send(email, 'Confirmez votre adresse email — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Bienvenue sur Foodly, ${firstName} !</h2>
+      <h2 style="color:#1C8275">Bienvenue sur RestoLab, ${firstName} !</h2>
       <p>Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
       <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Confirmer mon email
@@ -41,9 +41,9 @@ export async function sendVerificationEmail(email, token, firstName) {
 
 export async function sendCustomerVerificationEmail(email, token, firstName, businessId) {
   const link = `${APP_URL}/client/${businessId}?verify=${token}`;
-  await send(email, 'Confirmez votre adresse email — Foodly', `
+  await send(email, 'Confirmez votre adresse email — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Bienvenue sur Foodly, ${firstName} !</h2>
+      <h2 style="color:#1C8275">Bienvenue sur RestoLab, ${firstName} !</h2>
       <p>Pour activer votre compte client, veuillez confirmer votre adresse email :</p>
       <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Confirmer mon email
@@ -56,7 +56,7 @@ export async function sendCustomerVerificationEmail(email, token, firstName, bus
 
 export async function sendPasswordResetEmail(email, token, firstName) {
   const link = `${APP_URL}/reset-password?token=${token}`;
-  await send(email, 'Réinitialisation de mot de passe — Foodly', `
+  await send(email, 'Réinitialisation de mot de passe — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
       <h2 style="color:#1C8275">Réinitialisation de mot de passe</h2>
       <p>Bonjour ${firstName},</p>
@@ -72,7 +72,7 @@ export async function sendPasswordResetEmail(email, token, firstName) {
 
 export async function sendCustomerPasswordResetEmail(email, token, firstName, businessId) {
   const link = `${APP_URL}/client/${businessId}?reset=${token}`;
-  await send(email, 'Réinitialisation de mot de passe — Foodly', `
+  await send(email, 'Réinitialisation de mot de passe — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
       <h2 style="color:#1C8275">Réinitialisation de mot de passe</h2>
       <p>Bonjour ${firstName},</p>

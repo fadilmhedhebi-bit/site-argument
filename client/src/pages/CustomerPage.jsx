@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
 import { colors } from '../theme';
@@ -75,7 +75,7 @@ export default function CustomerPage() {
         .then(data => {
           setToken(data.token);
           setCustomer(data.customer);
-          localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
+          localStorage.setItem(`restolab_customer_${businessId}`, JSON.stringify(data));
           setView('home');
         })
         .catch(() => { setView('auth'); });
@@ -88,7 +88,7 @@ export default function CustomerPage() {
       return;
     }
 
-    const saved = localStorage.getItem(`foodly_customer_${businessId}`);
+    const saved = localStorage.getItem(`restolab_customer_${businessId}`);
     if (saved) {
       try {
         const data = JSON.parse(saved);
@@ -133,7 +133,7 @@ export default function CustomerPage() {
       const data = await customerRequest('POST', '/customers/login', { businessId, ...loginForm });
       setToken(data.token);
       setCustomer(data.customer);
-      localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
+      localStorage.setItem(`restolab_customer_${businessId}`, JSON.stringify(data));
       setView('home');
     } catch (err) {
       if (err.message.includes('vérifier votre adresse email')) {
@@ -152,7 +152,7 @@ export default function CustomerPage() {
       if (data.token && data.customer) {
         setToken(data.token);
         setCustomer(data.customer);
-        localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify(data));
+        localStorage.setItem(`restolab_customer_${businessId}`, JSON.stringify(data));
         setView('home');
       } else {
         setVerifyNotice(true);
@@ -201,7 +201,7 @@ export default function CustomerPage() {
     try {
       const updated = await customerRequest('PATCH', '/customers/me/profile', profileForm, token);
       setCustomer(updated);
-      localStorage.setItem(`foodly_customer_${businessId}`, JSON.stringify({ token, customer: updated }));
+      localStorage.setItem(`restolab_customer_${businessId}`, JSON.stringify({ token, customer: updated }));
       setProfileMsg('Profil mis à jour');
     } catch (err) { setProfileErr(err.message); }
   };
@@ -225,7 +225,7 @@ export default function CustomerPage() {
     setCustomer(null);
     setToken(null);
     setView('auth');
-    localStorage.removeItem(`foodly_customer_${businessId}`);
+    localStorage.removeItem(`restolab_customer_${businessId}`);
   };
 
   const submitOrder = async () => {
@@ -274,7 +274,7 @@ export default function CustomerPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
-            <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
+            <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
             <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Nouveau mot de passe</h2>
           </div>
           <form onSubmit={handleResetPassword} className="space-y-3">
@@ -329,7 +329,7 @@ export default function CustomerPage() {
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
           <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
             <div className="text-center mb-6">
-              <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
+              <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
               <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Mot de passe oublié</h2>
               <p className="text-sm mt-1" style={{ color: t.text2 }}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
             </div>
@@ -367,8 +367,8 @@ export default function CustomerPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
-            <div className="flex justify-center mb-3"><FoodlyLogo size={48} /></div>
-            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>foodly</h1>
+            <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
+            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</h1>
             <p className="text-sm mt-1" style={{ color: t.text2 }}>Espace client</p>
           </div>
 
@@ -449,8 +449,8 @@ export default function CustomerPage() {
       <header className="sticky top-0 z-40" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FoodlyLogo size={28} />
-            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>foodly</span>
+            <RestoLabLogo size={28} />
+            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</span>
             <span className="text-xs ml-1" style={{ color: t.text2 }}>{customer?.businessName}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -614,7 +614,7 @@ export default function CustomerPage() {
             <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)` : 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
-                <span className="text-xs opacity-60">foodly</span>
+                <span className="text-xs opacity-60">restolab</span>
               </div>
               <p className="text-4xl font-heading">{loyalty?.points || 0}</p>
               <p className="text-sm opacity-80 mt-1">points disponibles</p>

@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { useTheme } from '../ThemeContext';
 import { shadows } from '../theme';
-import FoodlyLogo from './FoodlyLogo';
+import RestoLabLogo from './RestoLabLogo';
 
 const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Livreur', driver: 'Livreur' };
 
@@ -19,8 +19,8 @@ export default function Layout() {
       <header className="sticky top-0 z-50" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 no-underline">
-            <FoodlyLogo size={30} />
-            <span className="text-xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>foodly</span>
+            <RestoLabLogo size={30} />
+            <span className="text-xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <button

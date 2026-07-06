@@ -35,7 +35,7 @@ export const useAuthStore = create(
       updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
     }),
     {
-      name: 'foodly-auth',
+      name: 'restolab-auth',
       onRehydrate: () => (state) => {
         if (state?.token) {
           setApiToken(state.token);

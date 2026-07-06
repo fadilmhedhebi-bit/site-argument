@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 import { colors } from '../theme';
 
 export default function VerifyEmailPage() {
@@ -44,7 +44,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: bg }}>
       <div className="w-full max-w-md rounded-2xl p-8 text-center" style={{ backgroundColor: t.cardBg }}>
-        <FoodlyLogo size={48} />
+        <RestoLabLogo size={48} />
         <h1 className="text-2xl font-bold mt-4 mb-2" style={{ color: t.text1 }}>
           {status === 'loading' ? 'Vérification...' : status === 'success' ? 'Email vérifié !' : 'Erreur'}
         </h1>

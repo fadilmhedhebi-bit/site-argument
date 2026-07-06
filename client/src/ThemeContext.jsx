@@ -5,7 +5,7 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [mode, setMode] = useState(() => {
-    const saved = localStorage.getItem('foodly-theme');
+    const saved = localStorage.getItem('restolab-theme');
     if (saved) return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
@@ -14,7 +14,7 @@ export function ThemeProvider({ children }) {
   const t = isDark ? dark : light;
 
   useEffect(() => {
-    localStorage.setItem('foodly-theme', mode);
+    localStorage.setItem('restolab-theme', mode);
     document.documentElement.classList.toggle('dark', isDark);
 
     const root = document.documentElement.style;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import FoodlyLogo from '../components/FoodlyLogo';
+import RestoLabLogo from '../components/RestoLabLogo';
 import { useTheme } from '../ThemeContext';
 import { colors, shadows } from '../theme';
 import { api, setApiToken } from '../utils/api';
@@ -121,8 +121,8 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: splashBg }}>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-4"><FoodlyLogo size={88} /></div>
-            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+            <div className="flex justify-center mb-4"><RestoLabLogo size={88} /></div>
+            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">restolab</h1>
           </div>
 
           <div className="shadow-sm p-8" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
@@ -174,8 +174,8 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: splashBg }}>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-4"><FoodlyLogo size={88} /></div>
-            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+            <div className="flex justify-center mb-4"><RestoLabLogo size={88} /></div>
+            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">restolab</h1>
           </div>
 
           <div className="shadow-sm p-8 text-center" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
@@ -216,9 +216,9 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <FoodlyLogo size={88} />
+              <RestoLabLogo size={88} />
             </div>
-            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+            <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">restolab</h1>
             <p className="text-white/55 mt-2 text-sm leading-relaxed">Gestion de livraison simplifiée</p>
           </div>
 
@@ -269,9 +269,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <FoodlyLogo size={88} />
+            <RestoLabLogo size={88} />
           </div>
-          <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">foodly</h1>
+          <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">restolab</h1>
           <p className="text-[10px] font-medium uppercase tracking-[2.5px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>Delivery Platform</p>
         </div>
 

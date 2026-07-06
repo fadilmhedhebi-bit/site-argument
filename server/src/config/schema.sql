@@ -1,4 +1,4 @@
--- Tournée Snack Express - Database Schema
+-- RestoLab - Database Schema
 
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

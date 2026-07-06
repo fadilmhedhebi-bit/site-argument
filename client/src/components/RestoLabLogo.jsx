@@ -1,4 +1,4 @@
-export default function FoodlyLogo({ size = 30 }) {
+export default function RestoLabLogo({ size = 30 }) {
   const radii = { 20: 6, 30: 9, 32: 9, 48: 14, 72: 20, 88: 24, 104: 28 };
   const br = radii[size] || Math.round(size * 0.27);
 
