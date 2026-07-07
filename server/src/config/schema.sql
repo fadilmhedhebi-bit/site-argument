@@ -653,3 +653,10 @@ CREATE TABLE IF NOT EXISTS platform_admins (
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================================
+-- BRANDING (couleurs et logo personnalises par commerce)
+-- ============================================================
+
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS primary_color VARCHAR(7);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS secondary_color VARCHAR(7);

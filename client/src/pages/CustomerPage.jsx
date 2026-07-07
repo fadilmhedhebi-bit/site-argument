@@ -26,7 +26,7 @@ async function customerRequest(method, path, body, token) {
 export default function CustomerPage() {
   const { businessId } = useParams();
   const [searchParams] = useSearchParams();
-  const { t, isDark, toggleTheme } = useTheme();
+  const { t, isDark, toggleTheme, applyBusinessColors } = useTheme();
   const [customer, setCustomer] = useState(null);
   const [token, setToken] = useState(null);
   const [view, setView] = useState('auth');
@@ -103,6 +103,8 @@ export default function CustomerPage() {
     if (token) loadCustomerData();
   }, [token]);
 
+  useEffect(() => () => applyBusinessColors({ primaryColor: null, secondaryColor: null }), []);
+
   useEffect(() => {
     if (customer) {
       setProfileForm({ firstName: customer.firstName || '', lastName: customer.lastName || '', phone: customer.phone || '' });
@@ -122,6 +124,7 @@ export default function CustomerPage() {
       setOrders(ordersList);
       setMenu(menuData);
       setBusinessDeliveryFee(parseFloat(menuData.business?.delivery_fee ?? 0));
+      applyBusinessColors({ primaryColor: menuData.business?.primary_color, secondaryColor: menuData.business?.secondary_color });
     } catch (err) {
       if (err.message.includes('Token') || err.message.includes('401')) logout();
     }
@@ -368,7 +371,7 @@ export default function CustomerPage() {
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
-            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</h1>
+            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>RestoLab</h1>
             <p className="text-sm mt-1" style={{ color: t.text2 }}>Espace client</p>
           </div>
 
@@ -450,7 +453,7 @@ export default function CustomerPage() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <RestoLabLogo size={28} />
-            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</span>
+            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>RestoLab</span>
             <span className="text-xs ml-1" style={{ color: t.text2 }}>{customer?.businessName}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -614,7 +617,7 @@ export default function CustomerPage() {
             <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)` : 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
-                <span className="text-xs opacity-60">restolab</span>
+                <span className="text-xs opacity-60">RestoLab</span>
               </div>
               <p className="text-4xl font-heading">{loyalty?.points || 0}</p>
               <p className="text-sm opacity-80 mt-1">points disponibles</p>

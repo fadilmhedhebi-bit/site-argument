@@ -39,7 +39,7 @@ export default function PlatformAdminLoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4"><RestoLabLogo size={72} /></div>
-          <h1 className="text-2xl font-bold text-white tracking-[-1px]">restolab admin</h1>
+          <h1 className="text-2xl font-bold text-white tracking-[-1px]">RestoLab Admin</h1>
           <p className="text-sm text-white/70 mt-1">Espace réservé à l'équipe RestoLab</p>
         </div>
 

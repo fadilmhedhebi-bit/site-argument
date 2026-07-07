@@ -18,7 +18,7 @@ const menuCategories = [
 
 export default function ClientCommandePage() {
   const { businessId } = useParams();
-  const { t } = useTheme();
+  const { t, applyBusinessColors } = useTheme();
   const [menu, setMenu] = useState({ business: null, categories: [], products: [] });
   const {
     cart, addToCart, updateQty,
@@ -43,9 +43,11 @@ export default function ClientCommandePage() {
       .then(data => {
         setMenu(data);
         setBusinessDeliveryFee(parseFloat(data.business?.delivery_fee ?? 0));
+        applyBusinessColors({ primaryColor: data.business?.primary_color, secondaryColor: data.business?.secondary_color });
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+    return () => applyBusinessColors({ primaryColor: null, secondaryColor: null });
   }, [businessId]);
 
   const submitOrder = async () => {

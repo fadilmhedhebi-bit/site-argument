@@ -21,7 +21,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 no-underline">
             <RestoLabLogo size={30} />
-            <span className="text-xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>restolab</span>
+            <span className="text-xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>RestoLab</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <button

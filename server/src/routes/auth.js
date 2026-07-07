@@ -407,6 +407,45 @@ router.patch('/business/delivery-fee', authenticate, requireRole('manager'), asy
   }
 });
 
+const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
+
+// GET /api/auth/business/branding - couleurs personnalisees (tous roles, pour appliquer le theme)
+router.get('/business/branding', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT primary_color, secondary_color, logo_url FROM businesses WHERE id = $1',
+      [req.user.businessId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
+    const b = result.rows[0];
+    res.json({ primaryColor: b.primary_color, secondaryColor: b.secondary_color, logoUrl: b.logo_url });
+  } catch (err) {
+    console.error('Get branding error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/auth/business/branding
+router.patch('/business/branding', authenticate, requireRole('manager'), async (req, res) => {
+  const { primaryColor, secondaryColor } = req.body;
+  if (primaryColor != null && !HEX_COLOR_RE.test(primaryColor)) {
+    return res.status(400).json({ error: 'Couleur primaire invalide (format hex #RRGGBB)' });
+  }
+  if (secondaryColor != null && !HEX_COLOR_RE.test(secondaryColor)) {
+    return res.status(400).json({ error: 'Couleur secondaire invalide (format hex #RRGGBB)' });
+  }
+  try {
+    await pool.query(
+      'UPDATE businesses SET primary_color = $1, secondary_color = $2, updated_at = NOW() WHERE id = $3',
+      [primaryColor || null, secondaryColor || null, req.user.businessId]
+    );
+    res.json({ primaryColor: primaryColor || null, secondaryColor: secondaryColor || null });
+  } catch (err) {
+    console.error('Update branding error:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour' });
+  }
+});
+
 // PATCH /api/auth/role
 router.patch('/role', authenticate, requireRole('manager'), async (req, res) => {
   const { role } = req.body;

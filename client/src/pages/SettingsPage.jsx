@@ -17,7 +17,7 @@ const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
 export default function SettingsPage() {
   const { user, updateUser, logout } = useAuthStore();
-  const { t, isDark, toggleTheme } = useTheme();
+  const { t, isDark, toggleTheme, applyBusinessColors } = useTheme();
   const navigate = useNavigate();
 
   const [profileForm, setProfileForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
@@ -31,11 +31,40 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState(null);
   const [billingErr, setBillingErr] = useState('');
   const [billingLoading, setBillingLoading] = useState(false);
+  const [brandColors, setBrandColors] = useState({ primaryColor: '#1C8275', secondaryColor: '#3140A8' });
+  const [brandMsg, setBrandMsg] = useState('');
+  const [brandErr, setBrandErr] = useState('');
+  const [brandSaving, setBrandSaving] = useState(false);
   const isManager = ['manager', 'manager_driver'].includes(user?.role);
 
   useEffect(() => {
     if (isManager) api.get('/billing/status').then(setBilling).catch(() => {});
   }, [isManager]);
+
+  useEffect(() => {
+    if (!isManager) return;
+    api.get('/auth/business/branding').then(data => {
+      setBrandColors({
+        primaryColor: data.primaryColor || '#1C8275',
+        secondaryColor: data.secondaryColor || '#3140A8',
+      });
+    }).catch(() => {});
+  }, [isManager]);
+
+  const handleBrandSave = async () => {
+    setBrandErr('');
+    setBrandMsg('');
+    setBrandSaving(true);
+    try {
+      await api.patch('/auth/business/branding', brandColors);
+      applyBusinessColors(brandColors);
+      setBrandMsg('Couleurs mises à jour');
+    } catch (err) {
+      setBrandErr(err.message);
+    } finally {
+      setBrandSaving(false);
+    }
+  };
 
   const goToCheckout = async () => {
     setBillingErr('');
@@ -161,6 +190,64 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Branding */}
+      {isManager && (
+        <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Couleurs du commerce</h2>
+          <p className="text-xs mb-4" style={{ color: t.text2 }}>
+            Personnalisez les couleurs affichées à vos clients et sur votre interface.
+          </p>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Couleur primaire</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandColors.primaryColor}
+                  onChange={e => setBrandColors({ ...brandColors, primaryColor: e.target.value })}
+                  className="w-10 h-10 rounded-lg cursor-pointer"
+                  style={{ border: `1px solid ${t.border}`, backgroundColor: 'transparent' }}
+                />
+                <input
+                  value={brandColors.primaryColor}
+                  onChange={e => setBrandColors({ ...brandColors, primaryColor: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl focus:outline-none text-sm"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Couleur secondaire</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandColors.secondaryColor}
+                  onChange={e => setBrandColors({ ...brandColors, secondaryColor: e.target.value })}
+                  className="w-10 h-10 rounded-lg cursor-pointer"
+                  style={{ border: `1px solid ${t.border}`, backgroundColor: 'transparent' }}
+                />
+                <input
+                  value={brandColors.secondaryColor}
+                  onChange={e => setBrandColors({ ...brandColors, secondaryColor: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl focus:outline-none text-sm"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </div>
+          {brandErr && <p className="text-xs mb-3" style={{ color: '#D97706' }}>{brandErr}</p>}
+          {brandMsg && <p className="text-xs mb-3" style={{ color: t.greenText }}>{brandMsg}</p>}
+          <button
+            onClick={handleBrandSave}
+            disabled={brandSaving}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            {brandSaving ? 'Enregistrement...' : 'Enregistrer les couleurs'}
+          </button>
+        </div>
+      )}
 
       {/* Profile */}
       <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>

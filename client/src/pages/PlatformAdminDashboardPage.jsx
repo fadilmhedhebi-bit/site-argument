@@ -73,7 +73,7 @@ export default function PlatformAdminDashboardPage() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <RestoLabLogo size={28} />
-            <span className="text-lg font-bold" style={{ color: t.text1 }}>restolab admin</span>
+            <span className="text-lg font-bold" style={{ color: t.text1 }}>RestoLab Admin</span>
           </div>
           <button onClick={logout} className="text-xs" style={{ color: t.text2 }}>Déconnexion</button>
         </div>
