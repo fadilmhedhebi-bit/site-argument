@@ -577,6 +577,28 @@ router.patch('/business/delivery-fee', authenticate, requireRole('manager'), asy
   }
 });
 
+// PATCH /api/auth/business/plan - changer de forfait, uniquement pendant l'essai
+// (une fois abonne, le forfait doit rester aligne avec ce qui est facture par
+// Stripe ; un changement post-abonnement passera par un futur flux dedie).
+router.patch('/business/plan', authenticate, requireRole('manager'), async (req, res) => {
+  const { plan } = req.body;
+  if (!PLANS.includes(plan)) {
+    return res.status(400).json({ error: `Forfait invalide. Choix: ${PLANS.join(', ')}` });
+  }
+  try {
+    const biz = await pool.query('SELECT subscription_status FROM businesses WHERE id = $1', [req.user.businessId]);
+    if (!biz.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
+    if (biz.rows[0].subscription_status !== 'trialing') {
+      return res.status(400).json({ error: "Le changement de forfait n'est possible que pendant la période d'essai. Contactez le support." });
+    }
+    await pool.query('UPDATE businesses SET plan = $1, updated_at = NOW() WHERE id = $2', [plan, req.user.businessId]);
+    res.json({ plan });
+  } catch (err) {
+    console.error('Update plan error:', err);
+    res.status(500).json({ error: 'Erreur lors du changement de forfait' });
+  }
+});
+
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
 // GET /api/auth/business/branding - couleurs personnalisees (tous roles, pour appliquer le theme)
