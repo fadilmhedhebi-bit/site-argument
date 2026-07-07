@@ -103,9 +103,11 @@ router.post('/', authenticate, async (req, res) => {
 
   const type = ['dine_in', 'takeaway', 'delivery'].includes(orderType) ? orderType : 'delivery';
 
-  if (!customerName?.trim()) return res.status(400).json({ error: 'Nom du client requis' });
-  if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone du client requis' });
-  if (type === 'delivery' && !deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'delivery') {
+    if (!customerName?.trim()) return res.status(400).json({ error: 'Nom du client requis' });
+    if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone du client requis' });
+    if (!deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  }
   if (type === 'dine_in' && !tableNumber) return res.status(400).json({ error: 'Numéro de table requis' });
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Au moins un article requis' });
 
@@ -165,6 +167,8 @@ router.post('/', authenticate, async (req, res) => {
 
     const total = Math.max(0, subtotal + deliveryFee - discountAmount);
     const orderNumber = await generateOrderNumber();
+    const resolvedName = customerName?.trim() || (type === 'dine_in' ? `Table ${tableNumber}` : `Commande ${orderNumber}`);
+    const resolvedPhone = customerPhone?.trim() || '';
 
     const orderResult = await client.query(
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
@@ -172,7 +176,7 @@ router.post('/', authenticate, async (req, res) => {
        subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id,
        order_type, table_number, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
-      [req.user.businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
+      [req.user.businessId, orderNumber, resolvedName, resolvedPhone, customerEmail?.trim() || null,
        deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
        subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
        type, tableNumber || null, 'preparing']
@@ -218,9 +222,11 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
   const type = ['dine_in', 'takeaway', 'delivery'].includes(orderType) ? orderType : 'delivery';
 
   if (!UUID_RE.test(req.params.businessId)) return res.status(400).json({ error: 'Business ID invalide' });
-  if (!customerName?.trim()) return res.status(400).json({ error: 'Nom requis' });
-  if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone requis' });
-  if (type === 'delivery' && !deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  if (type === 'delivery') {
+    if (!customerName?.trim()) return res.status(400).json({ error: 'Nom requis' });
+    if (!customerPhone?.trim()) return res.status(400).json({ error: 'Téléphone requis' });
+    if (!deliveryAddress?.trim()) return res.status(400).json({ error: 'Adresse de livraison requise' });
+  }
   if (type === 'dine_in' && !tableNumber) return res.status(400).json({ error: 'Numéro de table requis' });
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Panier vide' });
 
@@ -267,6 +273,8 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
 
     const total = Math.max(0, subtotal + deliveryFee - discountAmount);
     const orderNumber = await generateOrderNumber();
+    const resolvedName = customerName?.trim() || (type === 'dine_in' ? `Table ${tableNumber}` : `Commande ${orderNumber}`);
+    const resolvedPhone = customerPhone?.trim() || '';
 
     const orderResult = await client.query(
       `INSERT INTO orders (business_id, order_number, customer_name, customer_phone, customer_email,
@@ -274,7 +282,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
        subtotal, delivery_fee, discount_amount, total, payment_method, promo_code_id, customer_id,
        order_type, table_number, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-      [businessId, orderNumber, customerName.trim(), customerPhone.trim(), customerEmail?.trim() || null,
+      [businessId, orderNumber, resolvedName, resolvedPhone, customerEmail?.trim() || null,
        deliveryAddress?.trim() || null, deliveryLatitude || null, deliveryLongitude || null, deliveryNotes?.trim() || null,
        subtotal, deliveryFee, discountAmount, total, paymentMethod || 'cash', promoCodeId,
        customerId && UUID_RE.test(customerId) ? customerId : null,
@@ -322,7 +330,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
 
     await client.query('COMMIT');
 
-    notifyBusiness(businessId, 'order:new', { orderNumber: orderResult.rows[0].order_number, customerName: customerName.trim(), total });
+    notifyBusiness(businessId, 'order:new', { orderNumber: orderResult.rows[0].order_number, customerName: resolvedName, total });
 
     res.status(201).json({ orderNumber: orderResult.rows[0].order_number, total: orderResult.rows[0].total });
   } catch (err) {

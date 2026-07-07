@@ -51,8 +51,10 @@ export default function ClientCommandePage() {
   }, [businessId]);
 
   const submitOrder = async () => {
-    if (!form.customerName || !form.customerPhone) return alert('Nom et téléphone requis');
-    if (orderType === 'delivery' && !form.deliveryAddress) return alert('Adresse de livraison requise');
+    if (orderType === 'delivery') {
+      if (!form.customerName || !form.customerPhone) return alert('Nom et téléphone requis');
+      if (!form.deliveryAddress) return alert('Adresse de livraison requise');
+    }
     if (orderType === 'dine_in' && !form.tableNumber) return alert('Numéro de table requis');
     setSubmitting(true);
     try {
@@ -226,17 +228,26 @@ export default function ClientCommandePage() {
             <div className="rounded-xl p-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
               <h2 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Vos informations</h2>
               <div className="space-y-3">
-                <input placeholder="Nom complet *" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input placeholder="Téléphone *" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })}
-                    className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                  <input placeholder="Email" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })}
-                    className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                </div>
+                {orderType === 'delivery' && (
+                  <>
+                    <input placeholder="Nom complet *" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input placeholder="Téléphone *" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })}
+                        className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                      <input placeholder="Email" type="email" value={form.customerEmail} onChange={e => setForm({ ...form, customerEmail: e.target.value })}
+                        className="px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                    </div>
+                  </>
+                )}
                 {orderType === 'dine_in' && (
                   <input placeholder="Numéro de table *" value={form.tableNumber} onChange={e => setForm({ ...form, tableNumber: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                )}
+                {orderType === 'takeaway' && (
+                  <p className="text-xs" style={{ color: t.text2 }}>
+                    Un numéro de commande vous sera attribué à la validation.
+                  </p>
                 )}
                 {orderType === 'delivery' && (
                   <>

@@ -346,9 +346,11 @@ function CreateOrderModal({ products, businessDeliveryFee = 0, onClose, onCreate
   const total = subtotal + deliveryFee;
 
   const submit = async () => {
-    if (!form.customerName.trim()) return alert('Nom du client requis');
-    if (!form.customerPhone.trim()) return alert('Telephone requis');
-    if (orderType === 'delivery' && !form.deliveryAddress.trim()) return alert('Adresse de livraison requise');
+    if (orderType === 'delivery') {
+      if (!form.customerName.trim()) return alert('Nom du client requis');
+      if (!form.customerPhone.trim()) return alert('Telephone requis');
+      if (!form.deliveryAddress.trim()) return alert('Adresse de livraison requise');
+    }
     if (orderType === 'dine_in' && !form.tableNumber.trim()) return alert('Numero de table requis');
     if (cart.length === 0) return alert('Ajoutez au moins un article');
 
@@ -510,26 +512,34 @@ function CreateOrderModal({ products, businessDeliveryFee = 0, onClose, onCreate
           <div>
             <h3 className="text-sm font-semibold mb-2" style={{ color: t.text1 }}>Informations client</h3>
             <div className="space-y-2">
-              <input placeholder="Nom complet *" value={form.customerName}
-                onChange={e => setForm({ ...form, customerName: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
-                style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input placeholder="Telephone *" value={form.customerPhone}
-                  onChange={e => setForm({ ...form, customerPhone: e.target.value })}
-                  className="px-3 py-2 rounded-lg text-sm focus:outline-none"
-                  style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                <input placeholder="Email" type="email" value={form.customerEmail}
-                  onChange={e => setForm({ ...form, customerEmail: e.target.value })}
-                  className="px-3 py-2 rounded-lg text-sm focus:outline-none"
-                  style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
-              </div>
+              {orderType === 'delivery' && (
+                <>
+                  <input placeholder="Nom complet *" value={form.customerName}
+                    onChange={e => setForm({ ...form, customerName: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
+                    style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input placeholder="Telephone *" value={form.customerPhone}
+                      onChange={e => setForm({ ...form, customerPhone: e.target.value })}
+                      className="px-3 py-2 rounded-lg text-sm focus:outline-none"
+                      style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                    <input placeholder="Email" type="email" value={form.customerEmail}
+                      onChange={e => setForm({ ...form, customerEmail: e.target.value })}
+                      className="px-3 py-2 rounded-lg text-sm focus:outline-none"
+                      style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+                  </div>
+                </>
+              )}
 
               {orderType === 'dine_in' && (
                 <input placeholder="Numero de table *" value={form.tableNumber}
                   onChange={e => setForm({ ...form, tableNumber: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
                   style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }} />
+              )}
+
+              {orderType === 'takeaway' && (
+                <p className="text-xs" style={{ color: t.text2 }}>Un numéro de commande sera généré automatiquement.</p>
               )}
 
               {orderType === 'delivery' && (
