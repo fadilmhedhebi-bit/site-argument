@@ -12,6 +12,13 @@ export const GRACE_PERIOD_DAYS = 7;
 // elle-meme (sinon impossible de regulariser), admin plateforme, sante.
 const EXEMPT_PREFIXES = ['/api/auth', '/api/billing', '/api/platform-admin', '/api/health'];
 
+const READ_ONLY_MESSAGES = {
+  trialing: "Période d'essai terminée. Démarrez votre abonnement pour effectuer cette action.",
+  past_due: 'Échec de paiement : mettez à jour votre moyen de paiement pour effectuer cette action.',
+  canceled: 'Abonnement résilié. Réabonnez-vous pour effectuer cette action.',
+  suspended: 'Abonnement suspendu. Contactez-nous pour le réactiver.',
+};
+
 function decodeBusinessId(req) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return null;
@@ -22,6 +29,11 @@ function decodeBusinessId(req) {
   }
 }
 
+// Politique : un commerce sans abonnement actif (essai termine, paiement en
+// echec au-dela de la grace, resilie, suspendu) garde un acces en LECTURE
+// SEULE a toute l'application - il voit ses donnees et modules normalement,
+// mais toute action d'ecriture (POST/PUT/PATCH/DELETE) est bloquee avec un
+// message clair plutot que de couper completement l'acces.
 export async function requireActiveSubscription(req, res, next) {
   if (EXEMPT_PREFIXES.some(p => req.path.startsWith(p))) return next();
 
@@ -42,35 +54,21 @@ export async function requireActiveSubscription(req, res, next) {
 
     if (biz.subscription_status === 'active') return next();
 
-    if (biz.subscription_status === 'trialing') {
-      if (new Date(biz.trial_ends_at) > new Date()) return next();
-      return res.status(402).json({
-        error: 'Période d\'essai terminée. Démarrez votre abonnement pour continuer.',
-        code: 'TRIAL_EXPIRED',
-      });
+    if (biz.subscription_status === 'trialing' && new Date(biz.trial_ends_at) > new Date()) {
+      return next();
     }
 
     if (biz.subscription_status === 'past_due') {
       const graceEnd = biz.payment_failed_at ? new Date(biz.payment_failed_at) : new Date();
       graceEnd.setDate(graceEnd.getDate() + GRACE_PERIOD_DAYS);
-
-      if (new Date() < graceEnd) {
-        if (!isWrite) return next();
-        return res.status(402).json({
-          error: 'Échec de paiement : mettez à jour votre moyen de paiement (accès en lecture seule pendant la période de grâce).',
-          code: 'PAYMENT_GRACE',
-        });
-      }
-      return res.status(402).json({
-        error: 'Abonnement suspendu pour défaut de paiement.',
-        code: 'PAYMENT_OVERDUE',
-      });
+      if (new Date() < graceEnd) return next(); // grace : acces complet encore
     }
 
-    // canceled / suspended
+    if (!isWrite) return next();
+
     return res.status(402).json({
-      error: 'Abonnement inactif. Contactez-nous pour le réactiver.',
-      code: 'SUBSCRIPTION_INACTIVE',
+      error: READ_ONLY_MESSAGES[biz.subscription_status] || 'Abonnement inactif.',
+      code: 'SUBSCRIPTION_READ_ONLY',
     });
   } catch (err) {
     console.error('Subscription check error:', err);
