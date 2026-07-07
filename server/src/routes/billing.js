@@ -24,10 +24,10 @@ function mapStripeStatus(status) {
   }
 }
 
-// Depuis l'API Stripe 2025+, current_period_end vit sur la subscription item
-// (facturation multi-articles), plus sur la subscription elle-meme.
+// current_period_end peut vivre soit directement sur la subscription, soit
+// sur son premier item selon la version de l'API Stripe : on tente les deux.
 function periodEndOf(subscription) {
-  const ts = subscription.items?.data?.[0]?.current_period_end;
+  const ts = subscription.current_period_end ?? subscription.items?.data?.[0]?.current_period_end;
   return ts ? new Date(ts * 1000) : null;
 }
 
@@ -173,10 +173,15 @@ export async function stripeWebhookHandler(req, res) {
       }
       case 'invoice.paid': {
         const invoice = event.data.object;
-        await pool.query(
-          `UPDATE businesses SET subscription_status = 'active', payment_failed_at = NULL, updated_at = NOW() WHERE stripe_customer_id = $1`,
-          [invoice.customer]
-        );
+        if (invoice.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+          await syncSubscription(subscription);
+        } else {
+          await pool.query(
+            `UPDATE businesses SET subscription_status = 'active', payment_failed_at = NULL, updated_at = NOW() WHERE stripe_customer_id = $1`,
+            [invoice.customer]
+          );
+        }
         break;
       }
       case 'invoice.payment_failed': {

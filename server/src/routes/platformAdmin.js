@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../config/db.js';
 import { generatePlatformToken, authenticatePlatform } from '../middleware/platformAuth.js';
+import { PLANS } from '../config/plans.js';
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,12 +66,17 @@ router.get('/businesses', authenticatePlatform, async (req, res) => {
 });
 
 // PATCH /api/platform-admin/businesses/:id/subscription - Override manuel (support)
+// Permet aussi de forcer le forfait (plan) independamment de Stripe, utile
+// pour donner un acces complet a un commerce sans abonnement actif.
 router.patch('/businesses/:id/subscription', authenticatePlatform, async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
-  const { subscriptionStatus, trialEndsAt } = req.body;
+  const { subscriptionStatus, trialEndsAt, plan } = req.body;
   if (subscriptionStatus && !VALID_STATUSES.includes(subscriptionStatus)) {
     return res.status(400).json({ error: `Statut invalide. Choix: ${VALID_STATUSES.join(', ')}` });
+  }
+  if (plan && !PLANS.includes(plan)) {
+    return res.status(400).json({ error: `Forfait invalide. Choix: ${PLANS.join(', ')}` });
   }
 
   try {
@@ -78,10 +84,11 @@ router.patch('/businesses/:id/subscription', authenticatePlatform, async (req, r
       `UPDATE businesses SET
        subscription_status = COALESCE($1, subscription_status),
        trial_ends_at = COALESCE($2, trial_ends_at),
+       plan = COALESCE($4, plan),
        payment_failed_at = CASE WHEN $1 = 'active' THEN NULL ELSE payment_failed_at END,
        updated_at = NOW()
-       WHERE id = $3 RETURNING id, name, subscription_status, trial_ends_at, payment_failed_at`,
-      [subscriptionStatus || null, trialEndsAt || null, req.params.id]
+       WHERE id = $3 RETURNING id, name, subscription_status, trial_ends_at, payment_failed_at, plan`,
+      [subscriptionStatus || null, trialEndsAt || null, req.params.id, plan || null]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
     res.json(result.rows[0]);

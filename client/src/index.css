@@ -39,6 +39,11 @@
   --shadow-cta: var(--shadow-cta, 0 4px 16px rgba(21,97,88,.25));
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--theme-bg, #F8F9FC);

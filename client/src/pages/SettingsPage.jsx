@@ -467,15 +467,17 @@ export default function SettingsPage() {
               <p className="font-medium" style={{ color: t.text1 }}>Forfait</p>
               <p className="text-xs mt-0.5" style={{ color: t.text2 }}>
                 {billing.subscription_status === 'trialing'
-                  ? 'Modifiable pendant la période d\'essai'
-                  : 'Contactez le support pour changer de forfait'}
+                  ? "Modifiable librement pendant la période d'essai"
+                  : ['active', 'past_due'].includes(billing.subscription_status)
+                  ? 'Le changement est immédiat, au prorata de la période en cours'
+                  : 'Choisissez le forfait à activer'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.accentBg, color: t.accent }}>
                 {PLAN_LABEL[billing.plan] || billing.plan}
               </span>
-              {billing.subscription_status === 'trialing' && !changingPlan && (
+              {!changingPlan && (
                 <button onClick={openPlanChange} className="text-xs font-semibold hover:underline" style={{ color: t.accent }}>
                   Changer
                 </button>

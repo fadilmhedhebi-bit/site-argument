@@ -15,6 +15,8 @@ const STATUS_LABEL = {
   canceled: 'Résilié',
   suspended: 'Suspendu',
 };
+const PLAN_OPTIONS = ['starter', 'standard', 'premium'];
+const PLAN_LABEL = { starter: 'Starter', standard: 'Standard', premium: 'Premium' };
 
 function statusStyle(status, t) {
   if (status === 'active') return { backgroundColor: t.greenBg, color: t.greenText };
@@ -49,10 +51,10 @@ export default function PlatformAdminDashboardPage() {
     load('');
   }, []);
 
-  const applyOverride = async (id, subscriptionStatus) => {
+  const applyOverride = async (id, body) => {
     setSavingId(id);
     try {
-      await api.patch(`/platform-admin/businesses/${id}/subscription`, { subscriptionStatus });
+      await api.patch(`/platform-admin/businesses/${id}/subscription`, body);
       load(filter);
     } catch (err) {
       alert(err.message);
@@ -60,6 +62,8 @@ export default function PlatformAdminDashboardPage() {
       setSavingId(null);
     }
   };
+
+  const grantFullAccess = (id) => applyOverride(id, { subscriptionStatus: 'active', plan: 'premium' });
 
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
@@ -101,6 +105,7 @@ export default function PlatformAdminDashboardPage() {
               <tr style={{ backgroundColor: t.tabBg }}>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Commerce</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Statut</th>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Forfait</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Échéance</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Échec paiement</th>
                 <th className="text-left px-4 py-3 font-semibold" style={{ color: t.text2 }}>Action</th>
@@ -118,6 +123,9 @@ export default function PlatformAdminDashboardPage() {
                       {STATUS_LABEL[b.subscription_status] || b.subscription_status}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs font-semibold" style={{ color: t.text1 }}>
+                    {PLAN_LABEL[b.plan] || b.plan}
+                  </td>
                   <td className="px-4 py-3 text-xs" style={{ color: t.text2 }}>
                     {b.subscription_status === 'trialing' && b.trial_ends_at
                       ? new Date(b.trial_ends_at).toLocaleDateString('fr-FR')
@@ -129,16 +137,36 @@ export default function PlatformAdminDashboardPage() {
                     {b.payment_failed_at ? new Date(b.payment_failed_at).toLocaleDateString('fr-FR') : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <select
-                      disabled={savingId === b.id}
-                      value=""
-                      onChange={e => e.target.value && applyOverride(b.id, e.target.value)}
-                      className="px-2 py-1.5 rounded-lg text-xs"
-                      style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }}
-                    >
-                      <option value="">Forcer le statut...</option>
-                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                    </select>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        disabled={savingId === b.id}
+                        onClick={() => grantFullAccess(b.id)}
+                        className="px-2 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                        style={{ backgroundColor: t.accent, color: '#fff' }}
+                      >
+                        Accès complet
+                      </button>
+                      <select
+                        disabled={savingId === b.id}
+                        value=""
+                        onChange={e => e.target.value && applyOverride(b.id, { subscriptionStatus: e.target.value })}
+                        className="px-2 py-1.5 rounded-lg text-xs"
+                        style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }}
+                      >
+                        <option value="">Forcer le statut...</option>
+                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                      </select>
+                      <select
+                        disabled={savingId === b.id}
+                        value=""
+                        onChange={e => e.target.value && applyOverride(b.id, { plan: e.target.value })}
+                        className="px-2 py-1.5 rounded-lg text-xs"
+                        style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 }}
+                      >
+                        <option value="">Forcer le forfait...</option>
+                        {PLAN_OPTIONS.map(p => <option key={p} value={p}>{PLAN_LABEL[p]}</option>)}
+                      </select>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -17,7 +17,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: t.bg }}>
-      <header className="sticky top-0 z-50" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
+      <header className="sticky top-0 z-50" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}`, paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 no-underline">
             <RestoLabLogo size={30} />
@@ -97,7 +97,10 @@ export default function Layout() {
       )}
 
       <SubscriptionGate>
-        <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
+        <main
+          className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
+        >
           <Outlet />
         </main>
       </SubscriptionGate>
