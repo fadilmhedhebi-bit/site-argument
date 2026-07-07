@@ -67,7 +67,7 @@ router.post('/open', authenticate, requireRole('manager'), async (req, res) => {
 });
 
 router.post('/transaction', authenticate, async (req, res) => {
-  const { type, paymentMethod, amount, label, orderId } = req.body;
+  const { type, paymentMethod, amount, label, orderId, sumupTransactionCode } = req.body;
   if (!type || !['sale', 'refund', 'expense', 'deposit', 'withdrawal'].includes(type)) {
     return res.status(400).json({ error: 'Type de transaction invalide' });
   }
@@ -108,9 +108,9 @@ router.post('/transaction', authenticate, async (req, res) => {
     }));
 
     await client.query(
-      `INSERT INTO cash_transactions (session_id, business_id, type, payment_method, amount, label, order_id, created_by, sequence_number, prev_hash, hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [sessionId, businessId, type, paymentMethod, parsedAmount, trimmedLabel, orderId || null, req.user.id, sequenceNumber, prevHash, hash]
+      `INSERT INTO cash_transactions (session_id, business_id, type, payment_method, amount, label, order_id, created_by, sequence_number, prev_hash, hash, sumup_transaction_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [sessionId, businessId, type, paymentMethod, parsedAmount, trimmedLabel, orderId || null, req.user.id, sequenceNumber, prevHash, hash, sumupTransactionCode?.trim() || null]
     );
 
     const sign = ['sale', 'deposit'].includes(type) ? 1 : -1;

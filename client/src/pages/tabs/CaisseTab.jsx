@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
+import { isSumUpAvailable, chargeWithSumUp } from '../../sumup';
 
 const typeLabels = { sale: 'Vente', refund: 'Remboursement', expense: 'Dépense', deposit: 'Dépôt', withdrawal: 'Retrait' };
 const methodLabels = { cash: 'Espèces', card: 'Carte', meal_voucher: 'Ticket resto' };
@@ -66,7 +67,12 @@ export default function CaisseTab() {
   const addTransaction = async () => {
     if (!txForm.amount || isNaN(txForm.amount)) return alert('Montant invalide');
     try {
-      await api.post('/caisse/transaction', txForm);
+      let sumupTransactionCode;
+      if (txForm.type === 'sale' && txForm.paymentMethod === 'card' && isSumUpAvailable()) {
+        const result = await chargeWithSumUp(parseFloat(txForm.amount), txForm.label || 'Vente');
+        sumupTransactionCode = result.transactionCode;
+      }
+      await api.post('/caisse/transaction', { ...txForm, sumupTransactionCode });
       setShowTransaction(false);
       setTxForm({ type: 'sale', paymentMethod: 'cash', amount: '', label: '' });
       load();
@@ -76,12 +82,18 @@ export default function CaisseTab() {
   const encaisserOrder = async (order, paymentMethod) => {
     if (!session) return alert('Veuillez ouvrir la caisse d\'abord');
     try {
+      let sumupTransactionCode;
+      if (paymentMethod === 'card' && isSumUpAvailable()) {
+        const result = await chargeWithSumUp(parseFloat(order.total), order.order_number);
+        sumupTransactionCode = result.transactionCode;
+      }
       await api.post('/caisse/transaction', {
         type: 'sale',
         paymentMethod,
         amount: parseFloat(order.total),
         label: `${order.order_number} — ${order.customer_name} (${orderTypeLabels[order.order_type]})`,
         orderId: order.id,
+        sumupTransactionCode,
       });
       await api.patch(`/orders/${order.id}/status`, { status: 'delivered' });
       load();
@@ -377,7 +389,7 @@ function OrderEncaissementCard({ order, t, onEncaisser }) {
 
       <div className="flex items-center gap-2">
         <div className="flex gap-1 flex-1">
-          {[{ v: 'cash', l: 'Especes' }, { v: 'card', l: 'Carte' }, { v: 'meal_voucher', l: 'Ticket' }].map(m => (
+          {[{ v: 'cash', l: 'Especes' }, { v: 'card', l: isSumUpAvailable() ? 'Carte (SumUp)' : 'Carte' }, { v: 'meal_voucher', l: 'Ticket' }].map(m => (
             <button key={m.v} onClick={() => setSelectedMethod(m.v)}
               className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
               style={{
@@ -391,7 +403,9 @@ function OrderEncaissementCard({ order, t, onEncaisser }) {
         <button onClick={handleEncaisser} disabled={processing}
           className="px-4 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
           style={{ backgroundColor: t.greenText, color: '#fff' }}>
-          {processing ? '...' : 'Encaisser'}
+          {processing
+            ? (selectedMethod === 'card' && isSumUpAvailable() ? 'Lecteur...' : '...')
+            : 'Encaisser'}
         </button>
       </div>
     </div>

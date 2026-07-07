@@ -570,6 +570,9 @@ UPDATE cash_transactions ct SET business_id = cs.business_id FROM cash_sessions 
 ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS sequence_number BIGINT;
 ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS prev_hash VARCHAR(64);
 ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS hash VARCHAR(64);
+-- Reference de transaction SumUp (encaissement carte via lecteur physique),
+-- pour rapprochement avec le releve SumUp. NULL pour les autres moyens de paiement.
+ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS sumup_transaction_code VARCHAR(255);
 
 CREATE INDEX IF NOT EXISTS idx_cash_transactions_business ON cash_transactions(business_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cash_transactions_fiscal_sequence ON cash_transactions(business_id, sequence_number) WHERE sequence_number IS NOT NULL;
