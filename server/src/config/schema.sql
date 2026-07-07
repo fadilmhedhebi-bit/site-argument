@@ -627,7 +627,9 @@ CREATE TRIGGER trg_period_closings_immutable
 
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) NOT NULL DEFAULT 'trialing'
   CHECK (subscription_status IN ('trialing', 'active', 'past_due', 'canceled', 'suspended'));
-ALTER TABLE businesses ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'standard';
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'starter';
+ALTER TABLE businesses DROP CONSTRAINT IF EXISTS businesses_plan_check;
+ALTER TABLE businesses ADD CONSTRAINT businesses_plan_check CHECK (plan IN ('starter', 'standard', 'premium'));
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days');

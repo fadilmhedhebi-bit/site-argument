@@ -7,6 +7,21 @@ import multer from 'multer';
 import pool from '../config/db.js';
 import { generateToken, authenticate, requireRole } from '../middleware/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.js';
+import { PLANS, DEFAULT_PLAN, teamLimitFor } from '../config/plans.js';
+
+async function assertTeamSlotAvailable(businessId) {
+  const biz = await pool.query('SELECT plan FROM businesses WHERE id = $1', [businessId]);
+  const limit = teamLimitFor(biz.rows[0]?.plan);
+  const count = await pool.query(
+    "SELECT COUNT(*) FROM users WHERE business_id = $1 AND role IN ('driver', 'staff')",
+    [businessId]
+  );
+  if (parseInt(count.rows[0].count, 10) >= limit) {
+    const err = new Error('Limite de comptes atteinte pour votre forfait. Passez à un forfait supérieur pour en ajouter.');
+    err.code = 'TEAM_LIMIT_REACHED';
+    throw err;
+  }
+}
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,7 +45,8 @@ const upload = multer({
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { businessName, businessAddress, businessPhone, firstName, lastName, email, phone, username, password } = req.body;
+  const { businessName, businessAddress, businessPhone, firstName, lastName, email, phone, username, password, plan } = req.body;
+  const chosenPlan = PLANS.includes(plan) ? plan : DEFAULT_PLAN;
 
   if (!businessName?.trim()) {
     return res.status(400).json({ error: 'Le nom du commerce est requis' });
@@ -59,8 +75,8 @@ router.post('/register', async (req, res) => {
     }
 
     const bizResult = await client.query(
-      'INSERT INTO businesses (name, address, phone) VALUES ($1, $2, $3) RETURNING id',
-      [businessName.trim(), businessAddress?.trim() || null, businessPhone?.trim() || null]
+      'INSERT INTO businesses (name, address, phone, plan) VALUES ($1, $2, $3, $4) RETURNING id',
+      [businessName.trim(), businessAddress?.trim() || null, businessPhone?.trim() || null, chosenPlan]
     );
     const businessId = bizResult.rows[0].id;
 
@@ -86,7 +102,7 @@ router.post('/register', async (req, res) => {
           id: u.id, username: username.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
           email: email.trim(), role: u.role, businessId: u.business_id,
           businessName: businessName.trim(), businessAddress: businessAddress?.trim() || null,
-          businessPhone: businessPhone?.trim() || null,
+          businessPhone: businessPhone?.trim() || null, plan: chosenPlan,
         },
       });
     }
@@ -121,7 +137,7 @@ router.get('/verify-email/:token', async (req, res) => {
       return res.status(400).json({ error: 'Lien invalide ou expiré' });
     }
     const u = result.rows[0];
-    const bizResult = await pool.query('SELECT name, address, phone FROM businesses WHERE id = $1', [u.business_id]);
+    const bizResult = await pool.query('SELECT name, address, phone, plan FROM businesses WHERE id = $1', [u.business_id]);
     const biz = bizResult.rows[0] || {};
 
     res.json({
@@ -130,7 +146,7 @@ router.get('/verify-email/:token', async (req, res) => {
       user: {
         id: u.id, username: u.username, firstName: u.first_name, lastName: u.last_name,
         role: u.role, businessId: u.business_id, businessName: biz.name,
-        businessAddress: biz.address, businessPhone: biz.phone,
+        businessAddress: biz.address, businessPhone: biz.phone, plan: biz.plan,
       },
     });
   } catch (err) {
@@ -224,7 +240,7 @@ router.post('/login', async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.business_id, u.username, u.password_hash, u.first_name, u.last_name,
               u.email, u.role, u.is_active, u.email_verified, u.avatar_url,
-              b.name as business_name, b.address as business_address, b.phone as business_phone
+              b.name as business_name, b.address as business_address, b.phone as business_phone, b.plan
        FROM users u JOIN businesses b ON b.id = u.business_id
        WHERE u.username = $1`,
       [username.trim()]
@@ -259,6 +275,7 @@ router.post('/login', async (req, res) => {
         id: user.id, username: user.username, firstName: user.first_name, lastName: user.last_name,
         email: user.email, role: user.role, businessId: user.business_id, avatarUrl: user.avatar_url,
         businessName: user.business_name, businessAddress: user.business_address, businessPhone: user.business_phone,
+        plan: user.plan,
       },
     });
   } catch (err) {
@@ -348,6 +365,8 @@ router.post('/create-driver', authenticate, requireRole('manager'), async (req, 
   }
 
   try {
+    await assertTeamSlotAvailable(req.user.businessId);
+
     const baseUsername = `${firstName.toLowerCase().replace(/[^a-z]/g, '')}.${lastName.toLowerCase().replace(/[^a-z]/g, '')}`;
     const suffix = crypto.randomBytes(3).toString('hex');
     const username = `${baseUsername}.${suffix}`;
@@ -368,6 +387,7 @@ router.post('/create-driver', authenticate, requireRole('manager'), async (req, 
       message: 'Communiquez ces identifiants au livreur. Le mot de passe ne pourra plus être affiché.',
     });
   } catch (err) {
+    if (err.code === 'TEAM_LIMIT_REACHED') return res.status(403).json({ error: err.message, code: err.code });
     console.error('Create driver error:', err);
     if (err.code === '23505') return res.status(409).json({ error: 'Erreur de conflit, veuillez réessayer' });
     res.status(500).json({ error: 'Erreur interne lors de la création du livreur' });
@@ -380,6 +400,23 @@ router.post('/drivers', authenticate, requireRole('manager'), async (req, res, n
   router.handle(req, res, next);
 });
 
+// GET /api/auth/team-status - places utilisees / limite du forfait (livreurs + equipiers)
+router.get('/team-status', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const biz = await pool.query('SELECT plan FROM businesses WHERE id = $1', [req.user.businessId]);
+    const plan = biz.rows[0]?.plan;
+    const limit = teamLimitFor(plan);
+    const count = await pool.query(
+      "SELECT COUNT(*) FROM users WHERE business_id = $1 AND role IN ('driver', 'staff')",
+      [req.user.businessId]
+    );
+    res.json({ plan, used: parseInt(count.rows[0].count, 10), limit: Number.isFinite(limit) ? limit : null });
+  } catch (err) {
+    console.error('Team status error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
 // POST /api/auth/create-staff - equipier a acces restreint (caisse, commandes, reservations)
 router.post('/create-staff', authenticate, requireRole('manager'), async (req, res) => {
   const { firstName, lastName, phone, email } = req.body;
@@ -389,6 +426,8 @@ router.post('/create-staff', authenticate, requireRole('manager'), async (req, r
   }
 
   try {
+    await assertTeamSlotAvailable(req.user.businessId);
+
     const baseUsername = `${firstName.toLowerCase().replace(/[^a-z]/g, '')}.${lastName.toLowerCase().replace(/[^a-z]/g, '')}`;
     const suffix = crypto.randomBytes(3).toString('hex');
     const username = `${baseUsername}.${suffix}`;
@@ -409,6 +448,7 @@ router.post('/create-staff', authenticate, requireRole('manager'), async (req, r
       message: 'Communiquez ces identifiants à l\'équipier. Le mot de passe ne pourra plus être affiché.',
     });
   } catch (err) {
+    if (err.code === 'TEAM_LIMIT_REACHED') return res.status(403).json({ error: err.message, code: err.code });
     console.error('Create staff error:', err);
     if (err.code === '23505') return res.status(409).json({ error: 'Erreur de conflit, veuillez réessayer' });
     res.status(500).json({ error: "Erreur interne lors de la création de l'équipier" });
@@ -609,7 +649,7 @@ router.get('/me', authenticate, async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.username, u.first_name, u.last_name, u.email, u.phone, u.role,
               u.business_id, u.is_active, u.last_login, u.created_at, u.avatar_url,
-              b.name as business_name, b.address as business_address, b.phone as business_phone
+              b.name as business_name, b.address as business_address, b.phone as business_phone, b.plan
        FROM users u JOIN businesses b ON b.id = u.business_id WHERE u.id = $1`,
       [req.user.id]
     );
@@ -622,7 +662,7 @@ router.get('/me', authenticate, async (req, res) => {
       email: u.email, phone: u.phone, role: u.role, businessId: u.business_id,
       businessName: u.business_name, businessAddress: u.business_address,
       businessPhone: u.business_phone, isActive: u.is_active, avatarUrl: u.avatar_url,
-      lastLogin: u.last_login, createdAt: u.created_at,
+      lastLogin: u.last_login, createdAt: u.created_at, plan: u.plan,
     });
   } catch (err) {
     console.error('Get profile error:', err);

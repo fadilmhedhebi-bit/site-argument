@@ -5,6 +5,7 @@ import RestoLabLogo from '../components/RestoLabLogo';
 import { useTheme } from '../ThemeContext';
 import { colors, shadows } from '../theme';
 import { api, setApiToken } from '../utils/api';
+import { PLAN_INFO } from '../planConfig';
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login');
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [regForm, setRegForm] = useState({
     firstName: '', lastName: '', email: '', username: '', password: '',
-    businessName: '', businessAddress: '', businessPhone: '',
+    businessName: '', businessAddress: '', businessPhone: '', plan: 'standard',
   });
 
   const [forgotEmail, setForgotEmail] = useState('');
@@ -112,6 +113,8 @@ export default function LoginPage() {
       setStep(2);
     } else if (step === 2) {
       if (!regForm.businessName) return setError('Le nom du commerce est requis');
+      setStep(3);
+    } else if (step === 3) {
       handleRegister();
     }
   };
@@ -279,7 +282,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Inscription</h2>
             <div className="flex gap-1.5">
-              {[0, 1, 2].map((i) => (
+              {[0, 1, 2, 3].map((i) => (
                 <div key={i} className={`h-[5px] rounded-full transition-all ${
                   i <= step ? 'w-5' : 'w-[5px]'
                 }`} style={{ backgroundColor: i <= step ? t.accent : t.text3 }} />
@@ -307,7 +310,7 @@ export default function LoginPage() {
 
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-center mb-3" style={{ color: t.text2 }}>Étape 2/3 — Vos informations</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-center mb-3" style={{ color: t.text2 }}>Étape 2/4 — Vos informations</p>
               <div className="rounded-[14px]" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <div className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
                   <label className="text-[9px] uppercase tracking-wide" style={{ color: t.text3 }}>Prénom</label>
@@ -345,7 +348,7 @@ export default function LoginPage() {
 
           {step === 2 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-center mb-3" style={{ color: t.text2 }}>Étape 3/3 — Votre commerce</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-center mb-3" style={{ color: t.text2 }}>Étape 3/4 — Votre commerce</p>
               <div className="rounded-[14px]" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
                 <div className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
                   <label className="text-[9px] uppercase tracking-wide" style={{ color: t.text3 }}>Nom du restaurant</label>
@@ -369,6 +372,36 @@ export default function LoginPage() {
             </div>
           )}
 
+          {step === 3 && (
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-center mb-3" style={{ color: t.text2 }}>Étape 4/4 — Choisissez votre forfait</p>
+              <div className="space-y-2">
+                {PLAN_INFO.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setRegForm({ ...regForm, plan: p.id })}
+                    className="w-full p-4 rounded-[14px] text-left transition-colors"
+                    style={{ border: `2px solid ${regForm.plan === p.id ? t.accent : t.border}` }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold" style={{ color: t.text1 }}>{p.label}</h3>
+                      <span className="text-[10px] font-semibold uppercase" style={{ color: t.accent }}>{p.tagline}</span>
+                    </div>
+                    <ul className="mt-2 space-y-0.5">
+                      {p.features.map((f) => (
+                        <li key={f} className="text-xs" style={{ color: t.text2 }}>• {f}</li>
+                      ))}
+                    </ul>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-center pt-1" style={{ color: t.text2 }}>
+                Essai gratuit de 30 jours. Les tarifs vous seront communiqués avant tout paiement.
+              </p>
+            </div>
+          )}
+
           {error && <p className="text-sm mt-3" style={{ color: colors.orange }}>{error}</p>}
 
           <div className="flex gap-3 mt-6">
@@ -382,7 +415,7 @@ export default function LoginPage() {
             <button onClick={nextStep} disabled={loading}
               className="flex-1 py-3 rounded-[14px] font-semibold text-sm text-white disabled:opacity-50"
               style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', boxShadow: shadows.cta }}>
-              {step === 2 ? (loading ? 'Création...' : 'Créer mon restaurant') : 'Continuer →'}
+              {step === 3 ? (loading ? 'Création...' : 'Créer mon restaurant') : 'Continuer →'}
             </button>
           </div>
 

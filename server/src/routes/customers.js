@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { requirePlanModule } from '../middleware/planGate.js';
 import { sendCustomerVerificationEmail, sendCustomerPasswordResetEmail } from '../utils/email.js';
 
 const router = Router();
@@ -455,7 +456,7 @@ router.patch('/me/password', authenticateCustomer, async (req, res) => {
 // MANAGER: CUSTOMER MANAGEMENT
 // ============================================================
 
-router.get('/list', authenticate, requireRole('manager'), async (req, res) => {
+router.get('/list', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, email, first_name, last_name, phone, loyalty_points, total_orders, total_spent,
@@ -469,7 +470,7 @@ router.get('/list', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.patch('/:id/points', authenticate, requireRole('manager'), async (req, res) => {
+router.patch('/:id/points', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { adjustment, reason } = req.body;
   if (adjustment === undefined || isNaN(adjustment)) return res.status(400).json({ error: 'adjustment requis' });
@@ -497,7 +498,7 @@ router.patch('/:id/points', authenticate, requireRole('manager'), async (req, re
   }
 });
 
-router.patch('/:id/toggle', authenticate, requireRole('manager'), async (req, res) => {
+router.patch('/:id/toggle', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   try {
     const customer = await pool.query(
@@ -519,7 +520,7 @@ router.patch('/:id/toggle', authenticate, requireRole('manager'), async (req, re
 // MANAGER: LOYALTY CONFIG & REWARDS
 // ============================================================
 
-router.get('/loyalty/config', authenticate, requireRole('manager'), async (req, res) => {
+router.get('/loyalty/config', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   try {
     const [config, rewards] = await Promise.all([
       pool.query('SELECT * FROM loyalty_config WHERE business_id = $1', [req.user.businessId]),
@@ -535,7 +536,7 @@ router.get('/loyalty/config', authenticate, requireRole('manager'), async (req, 
   }
 });
 
-router.put('/loyalty/config', authenticate, requireRole('manager'), async (req, res) => {
+router.put('/loyalty/config', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   const { pointsPerEuro, isActive, welcomePoints } = req.body;
   try {
     const result = await pool.query(
@@ -557,7 +558,7 @@ router.put('/loyalty/config', authenticate, requireRole('manager'), async (req, 
   }
 });
 
-router.post('/loyalty/rewards', authenticate, requireRole('manager'), async (req, res) => {
+router.post('/loyalty/rewards', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   const { name, description, pointsCost, type, value } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
   if (!pointsCost || parseInt(pointsCost) < 1) return res.status(400).json({ error: 'Coût en points requis (>= 1)' });
@@ -579,7 +580,7 @@ router.post('/loyalty/rewards', authenticate, requireRole('manager'), async (req
   }
 });
 
-router.put('/loyalty/rewards/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.put('/loyalty/rewards/:id', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { name, description, pointsCost, type, value, isActive } = req.body;
 
@@ -601,7 +602,7 @@ router.put('/loyalty/rewards/:id', authenticate, requireRole('manager'), async (
   }
 });
 
-router.delete('/loyalty/rewards/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.delete('/loyalty/rewards/:id', authenticate, requirePlanModule('clients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   try {
     const result = await pool.query(

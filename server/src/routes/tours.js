@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { requirePlanModule } from '../middleware/planGate.js';
 import { optimizeRoute } from '../utils/route-optimizer.js';
 import { getIO } from '../index.js';
 
@@ -10,7 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const VALID_STATUSES = ['planned', 'in_progress', 'completed', 'cancelled'];
 
 // GET /api/tours
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, requirePlanModule('tournees'), async (req, res) => {
   try {
     const { status } = req.query;
     let query = `SELECT t.*, u.first_name as driver_first_name, u.last_name as driver_last_name,
@@ -35,7 +36,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // GET /api/tours/:id
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, requirePlanModule('tournees'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
   try {
@@ -62,7 +63,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // POST /api/tours
-router.post('/', authenticate, requireRole('manager'), async (req, res) => {
+router.post('/', authenticate, requirePlanModule('tournees'), requireRole('manager'), async (req, res) => {
   const { driverId, name, orderIds, startLatitude, startLongitude } = req.body;
 
   if (!driverId || !UUID_RE.test(driverId)) return res.status(400).json({ error: 'ID livreur invalide' });
@@ -167,7 +168,7 @@ router.post('/', authenticate, requireRole('manager'), async (req, res) => {
 });
 
 // PATCH /api/tours/:id/status
-router.patch('/:id/status', authenticate, async (req, res) => {
+router.patch('/:id/status', authenticate, requirePlanModule('tournees'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
   const { status } = req.body;
@@ -208,7 +209,7 @@ router.patch('/:id/status', authenticate, async (req, res) => {
 });
 
 // POST /api/tours/:id/optimize
-router.post('/:id/optimize', authenticate, requireRole('manager'), async (req, res) => {
+router.post('/:id/optimize', authenticate, requirePlanModule('tournees'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
   try {
@@ -266,7 +267,7 @@ router.post('/:id/optimize', authenticate, requireRole('manager'), async (req, r
 });
 
 // DELETE /api/tours/:id
-router.delete('/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.delete('/:id', authenticate, requirePlanModule('tournees'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
 
   const client = await pool.connect();

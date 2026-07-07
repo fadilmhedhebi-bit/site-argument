@@ -8,6 +8,7 @@ const KIND_LABEL = {
   staff: { singular: 'équipier', article: 'cet équipier', title: 'Nouvel équipier', created: 'Équipier créé !' },
 };
 const KIND_PATH = { driver: 'drivers', staff: 'staff' };
+const PLAN_LABEL = { starter: 'Starter', standard: 'Standard', premium: 'Premium' };
 
 function MemberCard({ member, kind, t, onToggle, onResetPassword, onDelete }) {
   return (
@@ -49,6 +50,7 @@ function MemberCard({ member, kind, t, onToggle, onResetPassword, onDelete }) {
 export default function EquipeTab() {
   const [drivers, setDrivers] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [teamStatus, setTeamStatus] = useState(null);
   const [showCreate, setShowCreate] = useState(null); // null | 'driver' | 'staff'
   const [created, setCreated] = useState(null);
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '' });
@@ -58,7 +60,9 @@ export default function EquipeTab() {
 
   const loadDrivers = () => api.get('/auth/drivers').then(setDrivers).catch(console.error);
   const loadStaff = () => api.get('/auth/staff').then(setStaff).catch(console.error);
-  useEffect(() => { loadDrivers(); loadStaff(); }, []);
+  const loadTeamStatus = () => api.get('/auth/team-status').then(setTeamStatus).catch(console.error);
+  useEffect(() => { loadDrivers(); loadStaff(); loadTeamStatus(); }, []);
+  const limitReached = teamStatus && teamStatus.limit != null && teamStatus.used >= teamStatus.limit;
 
   const toggleRole = async () => {
     const newRole = user.role === 'manager' ? 'manager_driver' : 'manager';
@@ -76,6 +80,7 @@ export default function EquipeTab() {
       setCreated(result);
       setForm({ firstName: '', lastName: '', phone: '' });
       showCreate === 'driver' ? loadDrivers() : loadStaff();
+      loadTeamStatus();
     } catch (err) { alert(err.message); }
   };
 
@@ -96,6 +101,7 @@ export default function EquipeTab() {
     try {
       await api.delete(`/auth/${KIND_PATH[kind]}/${id}`);
       kind === 'driver' ? loadDrivers() : loadStaff();
+      loadTeamStatus();
     } catch (err) { alert(err.message); }
   };
 
@@ -160,11 +166,26 @@ export default function EquipeTab() {
         </div>
       </div>
 
+      {teamStatus && (
+        <div className="rounded-xl border p-4 flex items-center justify-between flex-wrap gap-2"
+          style={{ backgroundColor: limitReached ? t.orangeBg : t.cardBg, borderColor: limitReached ? t.orangeText : t.border }}>
+          <p className="text-sm" style={{ color: limitReached ? t.orangeText : t.text1 }}>
+            <strong>{teamStatus.used}{teamStatus.limit != null ? `/${teamStatus.limit}` : ''}</strong> compte{teamStatus.used !== 1 ? 's' : ''} livreur/équipier utilisé{teamStatus.used !== 1 ? 's' : ''}
+            {' '}— forfait {PLAN_LABEL[teamStatus.plan] || teamStatus.plan}
+          </p>
+          {limitReached && (
+            <span className="text-xs font-semibold" style={{ color: t.orangeText }}>
+              Limite atteinte, passez à un forfait supérieur pour en ajouter
+            </span>
+          )}
+        </div>
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-heading" style={{ color: t.text1 }}>Ma flotte ({drivers.length} livreur{drivers.length !== 1 ? 's' : ''})</h3>
-          <button onClick={() => openCreate('driver')}
-            className="px-4 py-2 rounded-lg text-sm font-semibold"
+          <button onClick={() => openCreate('driver')} disabled={limitReached}
+            className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
             style={{ backgroundColor: t.accent, color: '#fff' }}>
             + Nouveau livreur
           </button>
@@ -184,8 +205,8 @@ export default function EquipeTab() {
             <h3 className="text-lg font-heading" style={{ color: t.text1 }}>Mes équipiers ({staff.length})</h3>
             <p className="text-xs mt-1" style={{ color: t.text2 }}>Accès limité à la caisse, la prise de commande et les réservations.</p>
           </div>
-          <button onClick={() => openCreate('staff')}
-            className="px-4 py-2 rounded-lg text-sm font-semibold shrink-0"
+          <button onClick={() => openCreate('staff')} disabled={limitReached}
+            className="px-4 py-2 rounded-lg text-sm font-semibold shrink-0 disabled:opacity-50"
             style={{ backgroundColor: t.accent, color: '#fff' }}>
             + Nouvel équipier
           </button>

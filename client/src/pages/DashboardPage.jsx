@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../utils/api';
+import { isModuleAllowed } from '../planConfig';
 import CommandesTab from './tabs/CommandesTab';
 import TourneesTab from './tabs/TourneesTab';
 import StatsTab from './tabs/StatsTab';
@@ -127,15 +128,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isStaff) {
       api.get('/stats/dashboard').then(data => setTodayStats(data.today)).catch(() => {});
-      api.get('/tables').then(tables => setTableStats({
-        occupied: tables.filter(tb => tb.status === 'occupied').length,
-        total: tables.length,
-      })).catch(() => {});
+      if (isModuleAllowed(user?.plan, 'tables')) {
+        api.get('/tables').then(tables => setTableStats({
+          occupied: tables.filter(tb => tb.status === 'occupied').length,
+          total: tables.length,
+        })).catch(() => {});
+      }
     }
     api.get('/orders?limit=50').then(orders => setActiveOrders(
       orders.filter(o => ['preparing', 'in_delivery'].includes(o.status)).slice(0, 5)
     )).catch(() => {});
-  }, [isStaff]);
+  }, [isStaff, user?.plan]);
 
   if (activeModule) {
     const ModuleComponent = components[activeModule];
@@ -173,7 +176,7 @@ export default function DashboardPage() {
         </button>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {group.modules.map((mod) => (
+          {group.modules.filter(mod => isModuleAllowed(user?.plan, mod.id)).map((mod) => (
             <button
               key={mod.id}
               onClick={() => setActiveModule(mod.id)}
@@ -242,7 +245,9 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <KpiCard label="CA jour" value={formatEuro(todayStats?.revenue)} />
           <KpiCard label="Commandes" value={todayStats?.total ?? '—'} />
-          <KpiCard label="Tables" value={tableStats ? `${tableStats.occupied}/${tableStats.total}` : '—'} />
+          {isModuleAllowed(user?.plan, 'tables') && (
+            <KpiCard label="Tables" value={tableStats ? `${tableStats.occupied}/${tableStats.total}` : '—'} />
+          )}
         </div>
       </div>
 
@@ -261,22 +266,26 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: t.text2 }}>Modules</h2>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {moduleGroups.map((group, idx) => (
-            <button
-              key={group.title}
-              onClick={() => setActiveGroup(idx)}
-              className="flex flex-col items-start rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              style={{
-                backgroundColor: t.cardBg,
-                border: `1px solid ${t.border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,.04)',
-              }}
-            >
-              <span className="text-sm font-semibold" style={{ color: t.text1 }}>{group.title}</span>
-              <span className="text-[11px] mt-1.5 leading-tight" style={{ color: t.text2 }}>{group.desc}</span>
-              <span className="text-[10px] font-mono mt-3" style={{ color: t.accent }}>{group.modules.length} modules</span>
-            </button>
-          ))}
+          {moduleGroups.map((group, idx) => {
+            const visibleCount = group.modules.filter(m => isModuleAllowed(user?.plan, m.id)).length;
+            if (visibleCount === 0) return null;
+            return (
+              <button
+                key={group.title}
+                onClick={() => setActiveGroup(idx)}
+                className="flex flex-col items-start rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: t.cardBg,
+                  border: `1px solid ${t.border}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,.04)',
+                }}
+              >
+                <span className="text-sm font-semibold" style={{ color: t.text1 }}>{group.title}</span>
+                <span className="text-[11px] mt-1.5 leading-tight" style={{ color: t.text2 }}>{group.desc}</span>
+                <span className="text-[10px] font-mono mt-3" style={{ color: t.accent }}>{visibleCount} modules</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { requirePlanModule } from '../middleware/planGate.js';
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-router.get('/', authenticate, requireRole('manager'), async (req, res) => {
+router.get('/', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM ingredients WHERE business_id = $1 ORDER BY name',
@@ -18,7 +19,7 @@ router.get('/', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.get('/alerts', authenticate, requireRole('manager'), async (req, res) => {
+router.get('/alerts', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM ingredients WHERE business_id = $1 AND quantity <= alert_threshold ORDER BY quantity ASC',
@@ -31,7 +32,7 @@ router.get('/alerts', authenticate, requireRole('manager'), async (req, res) => 
   }
 });
 
-router.post('/', authenticate, requireRole('manager'), async (req, res) => {
+router.post('/', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   const { name, unit, quantity, alertThreshold, costPerUnit, supplier } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
 
@@ -50,7 +51,7 @@ router.post('/', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.put('/:id', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { name, unit, quantity, alertThreshold, costPerUnit, supplier } = req.body;
 
@@ -73,7 +74,7 @@ router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.patch('/:id/stock', authenticate, requireRole('manager'), async (req, res) => {
+router.patch('/:id/stock', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { adjustment, type, note } = req.body;
 
@@ -124,7 +125,7 @@ router.patch('/:id/stock', authenticate, requireRole('manager'), async (req, res
   }
 });
 
-router.get('/:id/movements', authenticate, requireRole('manager'), async (req, res) => {
+router.get('/:id/movements', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   try {
     const result = await pool.query(
@@ -140,7 +141,7 @@ router.get('/:id/movements', authenticate, requireRole('manager'), async (req, r
   }
 });
 
-router.delete('/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.delete('/:id', authenticate, requirePlanModule('ingredients'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   try {
     const result = await pool.query(

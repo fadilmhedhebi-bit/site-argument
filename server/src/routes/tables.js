@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { requirePlanModule } from '../middleware/planGate.js';
 
 const router = Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, requirePlanModule('tables'), async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM restaurant_tables WHERE business_id = $1 ORDER BY table_number',
@@ -18,7 +19,7 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-router.post('/', authenticate, requireRole('manager'), async (req, res) => {
+router.post('/', authenticate, requirePlanModule('tables'), requireRole('manager'), async (req, res) => {
   const { tableNumber, capacity } = req.body;
   if (!tableNumber || isNaN(tableNumber) || parseInt(tableNumber) < 1) {
     return res.status(400).json({ error: 'Numéro de table invalide' });
@@ -41,7 +42,7 @@ router.post('/', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.put('/:id', authenticate, requirePlanModule('tables'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { tableNumber, capacity, status } = req.body;
 
@@ -64,7 +65,7 @@ router.put('/:id', authenticate, requireRole('manager'), async (req, res) => {
   }
 });
 
-router.patch('/:id/status', authenticate, async (req, res) => {
+router.patch('/:id/status', authenticate, requirePlanModule('tables'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   const { status } = req.body;
   if (!['available', 'occupied', 'reserved'].includes(status)) {
@@ -83,7 +84,7 @@ router.patch('/:id/status', authenticate, async (req, res) => {
   }
 });
 
-router.delete('/:id', authenticate, requireRole('manager'), async (req, res) => {
+router.delete('/:id', authenticate, requirePlanModule('tables'), requireRole('manager'), async (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.status(400).json({ error: 'ID invalide' });
   try {
     const result = await pool.query(
