@@ -55,7 +55,7 @@ export default function App() {
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<HomeRedirect />} />
           <Route path="dashboard" element={
-            <ProtectedRoute roles={['manager', 'manager_driver']}><DashboardPage /></ProtectedRoute>
+            <ProtectedRoute roles={['manager', 'manager_driver', 'staff']}><DashboardPage /></ProtectedRoute>
           } />
           <Route path="livraison" element={
             <ProtectedRoute roles={['driver', 'manager_driver']}><LivreurPage /></ProtectedRoute>

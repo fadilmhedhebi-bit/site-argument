@@ -380,6 +380,136 @@ router.post('/drivers', authenticate, requireRole('manager'), async (req, res, n
   router.handle(req, res, next);
 });
 
+// POST /api/auth/create-staff - equipier a acces restreint (caisse, commandes, reservations)
+router.post('/create-staff', authenticate, requireRole('manager'), async (req, res) => {
+  const { firstName, lastName, phone, email } = req.body;
+
+  if (!firstName?.trim() || !lastName?.trim()) {
+    return res.status(400).json({ error: 'Prénom et nom sont requis' });
+  }
+
+  try {
+    const baseUsername = `${firstName.toLowerCase().replace(/[^a-z]/g, '')}.${lastName.toLowerCase().replace(/[^a-z]/g, '')}`;
+    const suffix = crypto.randomBytes(3).toString('hex');
+    const username = `${baseUsername}.${suffix}`;
+
+    const plainPassword = crypto.randomBytes(4).toString('hex');
+    const passwordHash = await bcrypt.hash(plainPassword, 12);
+
+    const result = await pool.query(
+      `INSERT INTO users (business_id, username, password_hash, first_name, last_name, phone, email, role, email_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'staff', true) RETURNING id, created_at`,
+      [req.user.businessId, username, passwordHash, firstName.trim(), lastName.trim(), phone?.trim() || null, email?.trim() || null]
+    );
+
+    res.status(201).json({
+      id: result.rows[0].id, username, password: plainPassword,
+      firstName: firstName.trim(), lastName: lastName.trim(), phone: phone?.trim() || null,
+      createdAt: result.rows[0].created_at,
+      message: 'Communiquez ces identifiants à l\'équipier. Le mot de passe ne pourra plus être affiché.',
+    });
+  } catch (err) {
+    console.error('Create staff error:', err);
+    if (err.code === '23505') return res.status(409).json({ error: 'Erreur de conflit, veuillez réessayer' });
+    res.status(500).json({ error: "Erreur interne lors de la création de l'équipier" });
+  }
+});
+
+// GET /api/auth/staff
+router.get('/staff', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, username, first_name, last_name, phone, email, role, is_active, last_login, created_at
+       FROM users WHERE business_id = $1 AND role = 'staff' ORDER BY created_at DESC`,
+      [req.user.businessId]
+    );
+    res.json(result.rows.map(u => ({
+      id: u.id, username: u.username, firstName: u.first_name, lastName: u.last_name,
+      phone: u.phone, email: u.email, role: u.role, isActive: u.is_active,
+      lastLogin: u.last_login, createdAt: u.created_at,
+    })));
+  } catch (err) {
+    console.error('List staff error:', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération des équipiers' });
+  }
+});
+
+// PATCH /api/auth/staff/:id/toggle
+router.patch('/staff/:id/toggle', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const staff = await pool.query(
+      "SELECT id, is_active FROM users WHERE id = $1 AND business_id = $2 AND role = 'staff'",
+      [req.params.id, req.user.businessId]
+    );
+    if (!staff.rows.length) return res.status(404).json({ error: 'Équipier non trouvé' });
+
+    const newStatus = !staff.rows[0].is_active;
+    await pool.query('UPDATE users SET is_active = $1, updated_at = NOW() WHERE id = $2', [newStatus, req.params.id]);
+    res.json({ id: req.params.id, isActive: newStatus });
+  } catch (err) {
+    console.error('Toggle staff error:', err);
+    res.status(500).json({ error: 'Erreur lors de la modification du statut' });
+  }
+});
+
+// PATCH /api/auth/staff/:id/reset-password
+router.patch('/staff/:id/reset-password', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const staff = await pool.query(
+      "SELECT id, first_name, last_name, username FROM users WHERE id = $1 AND business_id = $2 AND role = 'staff'",
+      [req.params.id, req.user.businessId]
+    );
+    if (!staff.rows.length) return res.status(404).json({ error: 'Équipier non trouvé' });
+
+    const plainPassword = crypto.randomBytes(4).toString('hex');
+    const passwordHash = await bcrypt.hash(plainPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, req.params.id]);
+
+    const s = staff.rows[0];
+    res.json({
+      id: s.id, username: s.username, password: plainPassword,
+      firstName: s.first_name, lastName: s.last_name,
+      message: 'Nouveau mot de passe généré. Communiquez-le à l\'équipier.',
+    });
+  } catch (err) {
+    console.error('Reset staff password error:', err);
+    res.status(500).json({ error: 'Erreur lors de la réinitialisation du mot de passe' });
+  }
+});
+
+// DELETE /api/auth/staff/:id
+router.delete('/staff/:id', authenticate, requireRole('manager'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      "DELETE FROM users WHERE id = $1 AND business_id = $2 AND role = 'staff' RETURNING id",
+      [req.params.id, req.user.businessId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Équipier non trouvé' });
+    res.status(204).end();
+  } catch (err) {
+    console.error('Delete staff error:', err);
+    res.status(500).json({ error: "Erreur lors de la suppression de l'équipier" });
+  }
+});
+
+// DELETE /api/auth/drivers/:id
+router.delete('/drivers/:id', authenticate, requireRole('manager'), async (req, res) => {
+  if (req.params.id === req.user.id) {
+    return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+  }
+  try {
+    const result = await pool.query(
+      "DELETE FROM users WHERE id = $1 AND business_id = $2 AND role IN ('driver', 'manager_driver') RETURNING id",
+      [req.params.id, req.user.businessId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Livreur non trouvé' });
+    res.status(204).end();
+  } catch (err) {
+    console.error('Delete driver error:', err);
+    res.status(500).json({ error: 'Erreur lors de la suppression du livreur' });
+  }
+});
+
 // GET /api/auth/business/delivery-fee
 router.get('/business/delivery-fee', authenticate, requireRole('manager'), async (req, res) => {
   try {

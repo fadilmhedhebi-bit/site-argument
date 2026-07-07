@@ -6,7 +6,7 @@ import { shadows } from '../theme';
 import RestoLabLogo from './RestoLabLogo';
 import SubscriptionGate from './SubscriptionGate';
 
-const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Livreur', driver: 'Livreur' };
+const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Livreur', driver: 'Livreur', staff: 'Équipier' };
 
 export default function Layout() {
   const { user, logout } = useAuthStore();

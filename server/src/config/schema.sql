@@ -660,3 +660,11 @@ CREATE TABLE IF NOT EXISTS platform_admins (
 
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS primary_color VARCHAR(7);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS secondary_color VARCHAR(7);
+
+-- ============================================================
+-- EQUIPIERS (acces restreint : caisse, commandes, reservations)
+-- ============================================================
+
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('manager', 'driver', 'manager_driver', 'staff'));

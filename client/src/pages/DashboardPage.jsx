@@ -54,6 +54,12 @@ const moduleGroups = [
 
 const allModules = moduleGroups.flatMap(g => g.modules);
 
+const staffModules = [
+  { id: 'commandes', label: 'Commandes', desc: 'Prise de commande' },
+  { id: 'caisse', label: 'Caisse', desc: 'Encaissements & comptes' },
+  { id: 'reservations', label: 'Réservations', desc: 'Prises de réservation' },
+];
+
 const components = {
   commandes: CommandesTab,
   tournees: TourneesTab,
@@ -112,25 +118,28 @@ export default function DashboardPage() {
   const [activeGroup, setActiveGroup] = useState(null);
   const { t } = useTheme();
   const user = useAuthStore((s) => s.user);
+  const isStaff = user?.role === 'staff';
 
   const [todayStats, setTodayStats] = useState(null);
   const [tableStats, setTableStats] = useState(null);
   const [activeOrders, setActiveOrders] = useState([]);
 
   useEffect(() => {
-    api.get('/stats/dashboard').then(data => setTodayStats(data.today)).catch(() => {});
-    api.get('/tables').then(tables => setTableStats({
-      occupied: tables.filter(tb => tb.status === 'occupied').length,
-      total: tables.length,
-    })).catch(() => {});
+    if (!isStaff) {
+      api.get('/stats/dashboard').then(data => setTodayStats(data.today)).catch(() => {});
+      api.get('/tables').then(tables => setTableStats({
+        occupied: tables.filter(tb => tb.status === 'occupied').length,
+        total: tables.length,
+      })).catch(() => {});
+    }
     api.get('/orders?limit=50').then(orders => setActiveOrders(
       orders.filter(o => ['preparing', 'in_delivery'].includes(o.status)).slice(0, 5)
     )).catch(() => {});
-  }, []);
+  }, [isStaff]);
 
   if (activeModule) {
     const ModuleComponent = components[activeModule];
-    const mod = allModules.find(m => m.id === activeModule);
+    const mod = (isStaff ? staffModules : allModules).find(m => m.id === activeModule);
     return (
       <div>
         <button
@@ -177,6 +186,40 @@ export default function DashboardPage() {
             >
               <span className="text-sm font-semibold" style={{ color: t.text1 }}>{mod.label}</span>
               <span className="text-[11px] mt-1 leading-tight" style={{ color: t.text2 }}>{mod.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isStaff) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold" style={{ color: t.text1 }}>Bonjour, {user?.firstName}</h1>
+          <p className="text-sm mt-1" style={{ color: t.text2 }}>Que souhaitez-vous faire ?</p>
+        </div>
+
+        {activeOrders.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: t.text2 }}>En cours</h2>
+            <div className="space-y-2">
+              {activeOrders.map(order => <OrderCard key={order.id} order={order} t={t} />)}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {staffModules.map((mod) => (
+            <button
+              key={mod.id}
+              onClick={() => setActiveModule(mod.id)}
+              className="flex flex-col items-start rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: '0 2px 8px rgba(0,0,0,.04)' }}
+            >
+              <span className="text-sm font-semibold" style={{ color: t.text1 }}>{mod.label}</span>
+              <span className="text-[11px] mt-1.5 leading-tight" style={{ color: t.text2 }}>{mod.desc}</span>
             </button>
           ))}
         </div>
