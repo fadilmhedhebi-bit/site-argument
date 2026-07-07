@@ -7,6 +7,7 @@ const KIND_LABEL = {
   driver: { singular: 'livreur', article: 'ce livreur', title: 'Nouveau livreur', created: 'Livreur créé !' },
   staff: { singular: 'équipier', article: 'cet équipier', title: 'Nouvel équipier', created: 'Équipier créé !' },
 };
+const KIND_PATH = { driver: 'drivers', staff: 'staff' };
 
 function MemberCard({ member, kind, t, onToggle, onResetPassword, onDelete }) {
   return (
@@ -79,13 +80,13 @@ export default function EquipeTab() {
   };
 
   const toggleMember = async (kind, id) => {
-    try { await api.patch(`/auth/${kind}s/${id}/toggle`); kind === 'driver' ? loadDrivers() : loadStaff(); } catch (err) { alert(err.message); }
+    try { await api.patch(`/auth/${KIND_PATH[kind]}/${id}/toggle`); kind === 'driver' ? loadDrivers() : loadStaff(); } catch (err) { alert(err.message); }
   };
 
   const resetPassword = async (kind, id) => {
     if (!confirm('Réinitialiser le mot de passe ?')) return;
     try {
-      const result = await api.patch(`/auth/${kind}s/${id}/reset-password`);
+      const result = await api.patch(`/auth/${KIND_PATH[kind]}/${id}/reset-password`);
       alert(`Nouveau mot de passe : ${result.password}`);
     } catch (err) { alert(err.message); }
   };
@@ -93,7 +94,7 @@ export default function EquipeTab() {
   const deleteMember = async (kind, id) => {
     if (!confirm(`Supprimer ${KIND_LABEL[kind].article} ? Cette action est définitive.`)) return;
     try {
-      await api.delete(`/auth/${kind}s/${id}`);
+      await api.delete(`/auth/${KIND_PATH[kind]}/${id}`);
       kind === 'driver' ? loadDrivers() : loadStaff();
     } catch (err) { alert(err.message); }
   };
