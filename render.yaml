@@ -34,15 +34,9 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: SMTP_HOST
+      - key: BREVO_API_KEY
         sync: false
-      - key: SMTP_PORT
+      - key: SMTP_FROM_EMAIL
         sync: false
-      - key: SMTP_SECURE
-        sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
-      - key: SMTP_FROM
+      - key: SMTP_FROM_NAME
         sync: false

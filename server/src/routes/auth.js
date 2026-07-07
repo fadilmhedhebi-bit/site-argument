@@ -25,7 +25,7 @@ async function assertTeamSlotAvailable(businessId) {
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SMTP_CONFIGURED = !!process.env.SMTP_HOST;
+const SMTP_CONFIGURED = !!process.env.BREVO_API_KEY;
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '../../uploads/avatars'),

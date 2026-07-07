@@ -1,36 +1,47 @@
-import nodemailer from 'nodemailer';
-
-const transporter = process.env.SMTP_HOST
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
-  : null;
-
-const FROM = process.env.SMTP_FROM || 'RestoLab <noreply@restolab.app>';
+// Envoi via l'API HTTP de Brevo (https://api.brevo.com) plutot que SMTP :
+// les plateformes cloud (dont Render) bloquent les connexions SMTP sortantes
+// (port 587/465/25) par mesure anti-spam, l'API REST passe par HTTPS (443)
+// qui n'est jamais bloque.
+const BREVO_API_KEY = process.env.BREVO_API_KEY || null;
+const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || 'noreply@restolab.app';
+const FROM_NAME = process.env.SMTP_FROM_NAME || 'RestoLab';
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 
 async function send(to, subject, html) {
-  if (!transporter) {
+  if (!BREVO_API_KEY) {
     console.log(`[EMAIL] To: ${to} | Subject: ${subject}`);
     console.log(`[EMAIL] Body: ${html.replace(/<[^>]*>/g, '')}`);
     return;
   }
-  await transporter.sendMail({ from: FROM, to, subject, html });
+
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'api-key': BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { email: FROM_EMAIL, name: FROM_NAME },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo API error ${res.status}: ${body}`);
+  }
 }
 
 export async function sendVerificationEmail(email, token, firstName) {
   const link = `${APP_URL}/verify-email?token=${token}`;
   await send(email, 'Confirmez votre adresse email — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Bienvenue sur RestoLab, ${firstName} !</h2>
+      <h2 style="color:#5C6B3C">Bienvenue sur RestoLab, ${firstName} !</h2>
       <p>Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
-      <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+      <a href="${link}" style="display:inline-block;background:#5C6B3C;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Confirmer mon email
       </a>
       <p style="font-size:13px;color:#888">Ou copiez ce lien : ${link}</p>
@@ -43,9 +54,9 @@ export async function sendCustomerVerificationEmail(email, token, firstName, bus
   const link = `${APP_URL}/client/${businessId}?verify=${token}`;
   await send(email, 'Confirmez votre adresse email — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Bienvenue sur RestoLab, ${firstName} !</h2>
+      <h2 style="color:#5C6B3C">Bienvenue sur RestoLab, ${firstName} !</h2>
       <p>Pour activer votre compte client, veuillez confirmer votre adresse email :</p>
-      <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+      <a href="${link}" style="display:inline-block;background:#5C6B3C;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Confirmer mon email
       </a>
       <p style="font-size:13px;color:#888">Ou copiez ce lien : ${link}</p>
@@ -58,10 +69,10 @@ export async function sendPasswordResetEmail(email, token, firstName) {
   const link = `${APP_URL}/reset-password?token=${token}`;
   await send(email, 'Réinitialisation de mot de passe — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Réinitialisation de mot de passe</h2>
+      <h2 style="color:#5C6B3C">Réinitialisation de mot de passe</h2>
       <p>Bonjour ${firstName},</p>
       <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous :</p>
-      <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+      <a href="${link}" style="display:inline-block;background:#5C6B3C;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Réinitialiser mon mot de passe
       </a>
       <p style="font-size:13px;color:#888">Ce lien expire dans 1 heure.</p>
@@ -74,10 +85,10 @@ export async function sendCustomerPasswordResetEmail(email, token, firstName, bu
   const link = `${APP_URL}/client/${businessId}?reset=${token}`;
   await send(email, 'Réinitialisation de mot de passe — RestoLab', `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1C8275">Réinitialisation de mot de passe</h2>
+      <h2 style="color:#5C6B3C">Réinitialisation de mot de passe</h2>
       <p>Bonjour ${firstName},</p>
       <p>Vous avez demandé la réinitialisation de votre mot de passe :</p>
-      <a href="${link}" style="display:inline-block;background:#1C8275;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+      <a href="${link}" style="display:inline-block;background:#5C6B3C;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
         Réinitialiser mon mot de passe
       </a>
       <p style="font-size:13px;color:#888">Ce lien expire dans 1 heure.</p>
