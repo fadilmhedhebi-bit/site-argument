@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: NODE_ENV
         value: production
+      - key: APP_URL
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_PRICE_ID
