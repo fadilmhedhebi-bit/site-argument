@@ -222,7 +222,7 @@ export default function LoginPage() {
               <RestoLabLogo size={88} />
             </div>
             <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">RestoLab</h1>
-            <p className="text-white/55 mt-2 text-sm leading-relaxed">Gestion de livraison simplifiée</p>
+            <p className="text-white/55 mt-2 text-sm leading-relaxed">Le CRM à votre échelle</p>
           </div>
 
           <div className="shadow-sm p-8" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
@@ -275,7 +275,7 @@ export default function LoginPage() {
             <RestoLabLogo size={88} />
           </div>
           <h1 className="text-[44px] font-bold text-white tracking-[-1.5px] leading-none">RestoLab</h1>
-          <p className="text-[10px] font-medium uppercase tracking-[2.5px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>Delivery Platform</p>
+          <p className="text-[10px] font-medium uppercase tracking-[2.5px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>Le CRM à votre échelle</p>
         </div>
 
         <div className="shadow-sm p-8" style={{ backgroundColor: t.cardBg, borderRadius: '14px' }}>
