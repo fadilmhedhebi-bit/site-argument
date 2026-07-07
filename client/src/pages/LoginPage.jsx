@@ -29,8 +29,8 @@ export default function LoginPage() {
   const [resendMsg, setResendMsg] = useState('');
 
   const splashBg = isDark
-    ? `linear-gradient(160deg, ${colors.tealDark}, ${colors.darkBg})`
-    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+    ? `linear-gradient(160deg, ${colors.oliveDark}, ${colors.darkBg})`
+    : 'linear-gradient(160deg, #5C6B3C, #3A4427)';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -151,7 +151,7 @@ export default function LoginPage() {
                 {error && <p className="text-sm" style={{ color: colors.orange }}>{error}</p>}
                 <button type="submit" disabled={loading || !forgotEmail}
                   className="w-full py-4 rounded-[14px] font-semibold text-[15px] transition-colors disabled:opacity-50"
-                  style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', color: 'white', boxShadow: shadows.cta }}>
+                  style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', color: 'white', boxShadow: shadows.cta }}>
                   {loading ? 'Envoi...' : 'Envoyer le lien'}
                 </button>
               </form>
@@ -247,7 +247,7 @@ export default function LoginPage() {
               <button
                 type="submit" disabled={loading}
                 className="w-full py-4 rounded-[14px] font-semibold text-[15px] transition-colors disabled:opacity-50"
-                style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', color: 'white', boxShadow: shadows.cta }}
+                style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', color: 'white', boxShadow: shadows.cta }}
               >
                 {loading ? 'Connexion...' : 'Se connecter'}
               </button>
@@ -381,7 +381,7 @@ export default function LoginPage() {
             )}
             <button onClick={nextStep} disabled={loading}
               className="flex-1 py-3 rounded-[14px] font-semibold text-sm text-white disabled:opacity-50"
-              style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', boxShadow: shadows.cta }}>
+              style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', boxShadow: shadows.cta }}>
               {step === 2 ? (loading ? 'Création...' : 'Créer mon restaurant') : 'Continuer →'}
             </button>
           </div>

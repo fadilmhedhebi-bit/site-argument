@@ -44,7 +44,7 @@ export default function ReservationPublicPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#f5f7f5' }}>
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md overflow-hidden">
-        <div className="px-6 py-5 text-center" style={{ backgroundColor: '#1C8275' }}>
+        <div className="px-6 py-5 text-center" style={{ backgroundColor: '#5C6B3C' }}>
           <RestoLabLogo size={36} color="#fff" />
           <h1 className="text-lg font-bold text-white mt-2">{data.business_name}</h1>
         </div>
@@ -91,7 +91,7 @@ export default function ReservationPublicPage() {
             {data.business_phone && (
               <div>
                 <p className="text-xs text-gray-400">Telephone</p>
-                <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: '#1C8275' }}>{data.business_phone}</a>
+                <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: '#5C6B3C' }}>{data.business_phone}</a>
               </div>
             )}
           </div>

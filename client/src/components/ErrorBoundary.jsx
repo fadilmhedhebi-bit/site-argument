@@ -16,7 +16,7 @@ export default class ErrorBoundary extends Component {
           <button
             onClick={() => this.setState({ hasError: false })}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold"
-            style={{ backgroundColor: '#1C8275', color: '#fff' }}
+            style={{ backgroundColor: '#5C6B3C', color: '#fff' }}
           >
             Réessayer
           </button>

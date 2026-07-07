@@ -35,8 +35,8 @@ export default function ResetPasswordPage() {
   };
 
   const bg = isDark
-    ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)`
-    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+    ? `linear-gradient(160deg, ${colors.oliveDark}, #17160F)`
+    : 'linear-gradient(160deg, #5C6B3C, #3A4427)';
 
   if (!token) {
     return (
@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
               </div>
               <h2 className="text-xl font-bold mb-2" style={{ color: t.text1 }}>Mot de passe modifié</h2>
               <p className="text-sm mb-6" style={{ color: t.text2 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
-              <button onClick={() => navigate('/login')} className="w-full py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', boxShadow: shadows.cta }}>
+              <button onClick={() => navigate('/login')} className="w-full py-3 rounded-xl font-semibold text-sm text-white" style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', boxShadow: shadows.cta }}>
                 Se connecter
               </button>
             </div>
@@ -91,7 +91,7 @@ export default function ResetPasswordPage() {
                 {error && <p className="text-sm" style={{ color: colors.orange }}>{error}</p>}
                 <button type="submit" disabled={loading}
                   className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(160deg, #1C8275, #0D5650)', boxShadow: shadows.cta }}>
+                  style={{ background: 'linear-gradient(160deg, #5C6B3C, #3A4427)', boxShadow: shadows.cta }}>
                   {loading ? 'Modification...' : 'Modifier le mot de passe'}
                 </button>
               </form>

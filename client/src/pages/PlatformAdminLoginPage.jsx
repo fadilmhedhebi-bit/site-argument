@@ -15,8 +15,8 @@ export default function PlatformAdminLoginPage() {
   const { t, isDark } = useTheme();
 
   const splashBg = isDark
-    ? `linear-gradient(160deg, ${colors.tealDark}, ${colors.darkBg})`
-    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+    ? `linear-gradient(160deg, ${colors.oliveDark}, ${colors.darkBg})`
+    : 'linear-gradient(160deg, #5C6B3C, #3A4427)';
 
   const handleSubmit = async (e) => {
     e.preventDefault();

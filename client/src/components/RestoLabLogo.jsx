@@ -8,7 +8,7 @@ export default function RestoLabLogo({ size = 30 }) {
         width: size,
         height: size,
         borderRadius: br,
-        background: 'linear-gradient(160deg, #1C8275, #0D5650)',
+        background: 'linear-gradient(150deg, #5C6B3C, #3A4427)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -16,17 +16,19 @@ export default function RestoLabLogo({ size = 30 }) {
       }}
     >
       <svg
-        viewBox="0 0 44 50"
-        style={{ width: size * 0.6, height: size * 0.68 }}
+        viewBox="0 0 44 44"
+        style={{ width: size * 0.62, height: size * 0.62 }}
         xmlns="http://www.w3.org/2000/svg"
+        fill="none"
       >
-        <circle cx="28" cy="16" r="16" fill="#3140A8" />
-        <line x1="25" y1="4" x2="25" y2="14" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
-        <line x1="28" y1="4" x2="28" y2="14" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
-        <line x1="31" y1="4" x2="31" y2="14" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
-        <ellipse cx="16" cy="34" rx="16" ry="15" fill="#9472D4" />
-        <line x1="12" y1="34" x2="20" y2="34" stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" />
-        <line x1="16" y1="30" x2="16" y2="38" stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" />
+        <path d="M19 16V10H25V16" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <rect x="18" y="7" width="8" height="3" rx="1.5" fill="none" stroke="#D4AF37" strokeWidth="1.5" />
+        <ellipse cx="22" cy="28" rx="14" ry="12" fill="none" stroke="#D4AF37" strokeWidth="1.8" />
+        <path d="M19 16C17 18 10 22 10 28" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <path d="M25 16C27 18 34 22 34 28" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <ellipse cx="22" cy="30" rx="11" ry="8" fill="#D4AF37" opacity=".3" />
+        <circle cx="20" cy="28" r="1.5" fill="rgba(255,255,255,.5)" />
+        <circle cx="25" cy="30" r="1" fill="rgba(255,255,255,.4)" />
       </svg>
     </div>
   );

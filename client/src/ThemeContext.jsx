@@ -70,6 +70,8 @@ export function ThemeProvider({ children }) {
     root.setProperty('--theme-orange-text', t.orangeText);
     root.setProperty('--theme-blue-bg', t.blueBg);
     root.setProperty('--theme-blue-text', t.blueText);
+    root.setProperty('--theme-red-bg', t.redBg);
+    root.setProperty('--theme-red-text', t.redText);
 
     Object.entries(radii).forEach(([k, v]) => root.setProperty(`--radius-${k}`, v));
     root.setProperty('--shadow-card', shadows.card);

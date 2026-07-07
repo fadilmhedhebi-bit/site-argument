@@ -267,8 +267,8 @@ export default function CustomerPage() {
   };
 
   const authGradient = isDark
-    ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)`
-    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+    ? `linear-gradient(160deg, ${colors.oliveDark}, #17160F)`
+    : 'linear-gradient(160deg, #5C6B3C, #3A4427)';
 
   const inputStyle = { backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text1 };
 
@@ -614,7 +614,7 @@ export default function CustomerPage() {
 
         {view === 'loyalty' && (
           <div className="space-y-4">
-            <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)` : 'linear-gradient(160deg, #1C8275, #0D5650)' }}>
+            <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.oliveDark}, #17160F)` : 'linear-gradient(160deg, #5C6B3C, #3A4427)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
                 <span className="text-xs opacity-60">RestoLab</span>

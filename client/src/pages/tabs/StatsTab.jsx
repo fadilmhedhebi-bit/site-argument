@@ -7,7 +7,7 @@ import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
 import { colors } from '../../theme';
 
-const COLORS = [colors.teal, colors.violet, colors.navy, colors.green, colors.nearBlack];
+const COLORS = [colors.olive, colors.goldLight, colors.gold, colors.green, colors.charcoal];
 
 export default function StatsTab() {
   const { t, isDark } = useTheme();
@@ -90,7 +90,7 @@ export default function StatsTab() {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: t.text2 }} />
               <YAxis tick={{ fontSize: 11, fill: t.text2 }} />
               <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
-              <Bar dataKey="CA" fill={colors.teal} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="CA" fill={colors.olive} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -102,7 +102,7 @@ export default function StatsTab() {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: t.text2 }} />
               <YAxis tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
               <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
-              <Bar dataKey="Livraisons" fill={colors.violet} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Livraisons" fill={colors.goldLight} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -132,7 +132,7 @@ export default function StatsTab() {
                 <XAxis type="number" tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: t.text2 }} />
                 <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
-                <Bar dataKey="Livrées" fill={colors.violet} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Livrées" fill={colors.goldLight} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="Problèmes" fill="#EF4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -149,7 +149,7 @@ export default function StatsTab() {
             <XAxis dataKey="heure" tick={{ fontSize: 10, fill: t.text2 }} />
             <YAxis tick={{ fontSize: 11, fill: t.text2 }} allowDecimals={false} />
             <Tooltip contentStyle={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, color: t.text1 }} />
-            <Bar dataKey="commandes" fill={colors.teal} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="commandes" fill={colors.olive} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

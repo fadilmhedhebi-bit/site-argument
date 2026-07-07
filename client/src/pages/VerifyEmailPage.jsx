@@ -38,8 +38,8 @@ export default function VerifyEmailPage() {
   }, [token]);
 
   const bg = isDark
-    ? `linear-gradient(160deg, ${colors.tealDark}, #0C0A14)`
-    : 'linear-gradient(160deg, #1C8275, #0D5650)';
+    ? `linear-gradient(160deg, ${colors.oliveDark}, #17160F)`
+    : 'linear-gradient(160deg, #5C6B3C, #3A4427)';
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: bg }}>

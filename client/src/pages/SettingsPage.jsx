@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState(null);
   const [billingErr, setBillingErr] = useState('');
   const [billingLoading, setBillingLoading] = useState(false);
-  const [brandColors, setBrandColors] = useState({ primaryColor: '#1C8275', secondaryColor: '#3140A8' });
+  const [brandColors, setBrandColors] = useState({ primaryColor: '#5C6B3C', secondaryColor: '#D4AF37' });
   const [brandMsg, setBrandMsg] = useState('');
   const [brandErr, setBrandErr] = useState('');
   const [brandSaving, setBrandSaving] = useState(false);
@@ -45,8 +45,8 @@ export default function SettingsPage() {
     if (!isManager) return;
     api.get('/auth/business/branding').then(data => {
       setBrandColors({
-        primaryColor: data.primaryColor || '#1C8275',
-        secondaryColor: data.secondaryColor || '#3140A8',
+        primaryColor: data.primaryColor || '#5C6B3C',
+        secondaryColor: data.secondaryColor || '#D4AF37',
       });
     }).catch(() => {});
   }, [isManager]);
