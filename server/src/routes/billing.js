@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import { stripe, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET, isStripeConfigured } from '../utils/stripe.js';
+import { stripe, STRIPE_PRICE_BY_PLAN, STRIPE_PRICE_EQUIPMENT, STRIPE_WEBHOOK_SECRET, isStripeConfigured } from '../utils/stripe.js';
 import { GRACE_PERIOD_DAYS } from '../middleware/subscription.js';
 
 const router = Router();
@@ -68,17 +68,24 @@ router.get('/status', authenticate, async (req, res) => {
 });
 
 // POST /api/billing/checkout - Cree une session Stripe Checkout pour demarrer l'abonnement
+// Body optionnel : { withEquipment: bool } - ajoute la location de materiel (meme tarif quel que soit le forfait)
 router.post('/checkout', authenticate, requireRole('manager'), async (req, res) => {
   if (!isStripeConfigured()) {
     return res.status(503).json({ error: 'Facturation non configurée (Stripe absent)' });
   }
   try {
-    const biz = await pool.query('SELECT stripe_customer_id FROM businesses WHERE id = $1', [req.user.businessId]);
+    const biz = await pool.query('SELECT stripe_customer_id, plan FROM businesses WHERE id = $1', [req.user.businessId]);
     if (!biz.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
+
+    const planPrice = STRIPE_PRICE_BY_PLAN[biz.rows[0].plan] || STRIPE_PRICE_BY_PLAN.starter;
+    const lineItems = [{ price: planPrice, quantity: 1 }];
+    if (req.body?.withEquipment && STRIPE_PRICE_EQUIPMENT) {
+      lineItems.push({ price: STRIPE_PRICE_EQUIPMENT, quantity: 1 });
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: lineItems,
       customer: biz.rows[0].stripe_customer_id || undefined,
       client_reference_id: req.user.businessId,
       metadata: { businessId: req.user.businessId },

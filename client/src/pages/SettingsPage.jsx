@@ -35,6 +35,7 @@ export default function SettingsPage() {
   const [brandMsg, setBrandMsg] = useState('');
   const [brandErr, setBrandErr] = useState('');
   const [brandSaving, setBrandSaving] = useState(false);
+  const [withEquipment, setWithEquipment] = useState(false);
   const isManager = ['manager', 'manager_driver'].includes(user?.role);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function SettingsPage() {
     setBillingErr('');
     setBillingLoading(true);
     try {
-      const { url } = await api.post('/billing/checkout', {});
+      const { url } = await api.post('/billing/checkout', { withEquipment });
       window.location.href = url;
     } catch (err) {
       setBillingErr(err.message);
@@ -341,6 +342,12 @@ export default function SettingsPage() {
             </span>
           </div>
           {billingErr && <p className="text-xs mb-3" style={{ color: '#D97706' }}>{billingErr}</p>}
+          {!['active', 'past_due'].includes(billing.subscription_status) && (
+            <label className="flex items-center gap-2 mb-4 text-sm cursor-pointer" style={{ color: t.text1 }}>
+              <input type="checkbox" checked={withEquipment} onChange={e => setWithEquipment(e.target.checked)} />
+              Louer l'équipement (tablette, imprimante ticket) — +30€/mois
+            </label>
+          )}
           <button
             onClick={billing.subscription_status === 'active' || billing.subscription_status === 'past_due' ? goToPortal : goToCheckout}
             disabled={billingLoading}
