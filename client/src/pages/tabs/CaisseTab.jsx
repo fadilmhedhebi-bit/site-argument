@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
+import { useAuthStore } from '../../stores/authStore';
 import { isSumUpAvailable, chargeWithSumUp } from '../../sumup';
+import { printReceipt } from '../../printing';
 
 const typeLabels = { sale: 'Vente', refund: 'Remboursement', expense: 'Dépense', deposit: 'Dépôt', withdrawal: 'Retrait' };
 const methodLabels = { cash: 'Espèces', card: 'Carte', meal_voucher: 'Ticket resto' };
@@ -9,6 +11,7 @@ const orderTypeLabels = { dine_in: 'Sur place', takeaway: 'Emporter', delivery: 
 
 export default function CaisseTab() {
   const { t } = useTheme();
+  const user = useAuthStore((s) => s.user);
   const [session, setSession] = useState(null);
   const [history, setHistory] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -20,6 +23,20 @@ export default function CaisseTab() {
   const [showTransaction, setShowTransaction] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [txForm, setTxForm] = useState({ type: 'sale', paymentMethod: 'cash', amount: '', label: '' });
+  const [receiptPrinterIp, setReceiptPrinterIp] = useState('');
+
+  useEffect(() => {
+    api.get('/auth/business/printers').then(data => setReceiptPrinterIp(data.receiptPrinterIp || '')).catch(console.error);
+  }, []);
+
+  const printOrderReceipt = async (order) => {
+    try {
+      const detail = await api.get(`/orders/${order.id}`);
+      await printReceipt(receiptPrinterIp, { ...detail, business_name: user?.businessName }, detail.items, detail.payment_method);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const load = async () => {
     try {
@@ -230,7 +247,7 @@ export default function CaisseTab() {
           </h3>
           <div className="space-y-2">
             {pendingOrders.map(o => (
-              <OrderEncaissementCard key={o.id} order={o} t={t} onEncaisser={encaisserOrder} />
+              <OrderEncaissementCard key={o.id} order={o} t={t} onEncaisser={encaisserOrder} onPrintReceipt={printOrderReceipt} />
             ))}
           </div>
         </div>
@@ -350,9 +367,10 @@ export default function CaisseTab() {
   );
 }
 
-function OrderEncaissementCard({ order, t, onEncaisser }) {
+function OrderEncaissementCard({ order, t, onEncaisser, onPrintReceipt }) {
   const [selectedMethod, setSelectedMethod] = useState(order.payment_method || 'cash');
   const [processing, setProcessing] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const handleEncaisser = async () => {
     setProcessing(true);
@@ -360,6 +378,15 @@ function OrderEncaissementCard({ order, t, onEncaisser }) {
       await onEncaisser(order, selectedMethod);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handlePrintReceipt = async () => {
+    setPrinting(true);
+    try {
+      await onPrintReceipt(order);
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -400,6 +427,11 @@ function OrderEncaissementCard({ order, t, onEncaisser }) {
             </button>
           ))}
         </div>
+        <button onClick={handlePrintReceipt} disabled={printing}
+          className="px-2.5 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+          style={{ backgroundColor: t.tabBg, color: t.text1 }} title="Imprimer le reçu">
+          🖨
+        </button>
         <button onClick={handleEncaisser} disabled={processing}
           className="px-4 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
           style={{ backgroundColor: t.greenText, color: '#fff' }}>

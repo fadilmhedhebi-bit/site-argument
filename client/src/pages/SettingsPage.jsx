@@ -5,6 +5,7 @@ import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
 import { shadows } from '../theme';
 import { PLAN_INFO } from '../planConfig';
+import { testPrint } from '../printing';
 
 const STATUS_LABEL = {
   trialing: 'Période d\'essai',
@@ -44,6 +45,11 @@ export default function SettingsPage() {
   const [planMsg, setPlanMsg] = useState('');
   const [planErr, setPlanErr] = useState('');
   const [planSaving, setPlanSaving] = useState(false);
+  const [printers, setPrinters] = useState({ kitchenPrinterIp: '', receiptPrinterIp: '' });
+  const [printersMsg, setPrintersMsg] = useState('');
+  const [printersErr, setPrintersErr] = useState('');
+  const [printersSaving, setPrintersSaving] = useState(false);
+  const [testingPrinter, setTestingPrinter] = useState(null);
   const isManager = ['manager', 'manager_driver'].includes(user?.role);
 
   useEffect(() => {
@@ -59,6 +65,39 @@ export default function SettingsPage() {
       });
     }).catch(() => {});
   }, [isManager]);
+
+  useEffect(() => {
+    if (!isManager) return;
+    api.get('/auth/business/printers').then(data => {
+      setPrinters({ kitchenPrinterIp: data.kitchenPrinterIp || '', receiptPrinterIp: data.receiptPrinterIp || '' });
+    }).catch(() => {});
+  }, [isManager]);
+
+  const handlePrintersSave = async () => {
+    setPrintersErr('');
+    setPrintersMsg('');
+    setPrintersSaving(true);
+    try {
+      await api.patch('/auth/business/printers', printers);
+      setPrintersMsg('Imprimantes mises à jour');
+    } catch (err) {
+      setPrintersErr(err.message);
+    } finally {
+      setPrintersSaving(false);
+    }
+  };
+
+  const handleTestPrint = async (ip, key) => {
+    setPrintersErr('');
+    setTestingPrinter(key);
+    try {
+      await testPrint(ip);
+    } catch (err) {
+      setPrintersErr(`Test échoué : ${err.message}`);
+    } finally {
+      setTestingPrinter(null);
+    }
+  };
 
   const handleBrandSave = async () => {
     setBrandErr('');
@@ -278,6 +317,56 @@ export default function SettingsPage() {
             style={{ backgroundColor: t.accent, color: '#fff' }}
           >
             {brandSaving ? 'Enregistrement...' : 'Enregistrer les couleurs'}
+          </button>
+        </div>
+      )}
+
+      {/* Imprimantes */}
+      {isManager && (
+        <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Imprimantes réseau</h2>
+          <p className="text-xs mb-4" style={{ color: t.text2 }}>
+            Adresse IP locale de vos imprimantes tickets (Star WebPRNT). Fonctionne depuis l'app mobile ; peut être bloqué depuis un navigateur web classique.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Imprimante cuisine</label>
+              <div className="flex items-center gap-2">
+                <input placeholder="192.168.1.50" value={printers.kitchenPrinterIp}
+                  onChange={e => setPrinters({ ...printers, kitchenPrinterIp: e.target.value })}
+                  className="flex-1 px-4 py-2.5 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+                <button onClick={() => handleTestPrint(printers.kitchenPrinterIp, 'kitchen')}
+                  disabled={!printers.kitchenPrinterIp || testingPrinter === 'kitchen'}
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold disabled:opacity-50 shrink-0"
+                  style={{ backgroundColor: t.tabBg, color: t.text1 }}>
+                  {testingPrinter === 'kitchen' ? 'Test...' : 'Tester'}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: t.text2 }}>Imprimante reçu</label>
+              <div className="flex items-center gap-2">
+                <input placeholder="192.168.1.51" value={printers.receiptPrinterIp}
+                  onChange={e => setPrinters({ ...printers, receiptPrinterIp: e.target.value })}
+                  className="flex-1 px-4 py-2.5 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+                <button onClick={() => handleTestPrint(printers.receiptPrinterIp, 'receipt')}
+                  disabled={!printers.receiptPrinterIp || testingPrinter === 'receipt'}
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold disabled:opacity-50 shrink-0"
+                  style={{ backgroundColor: t.tabBg, color: t.text1 }}>
+                  {testingPrinter === 'receipt' ? 'Test...' : 'Tester'}
+                </button>
+              </div>
+            </div>
+          </div>
+          {printersErr && <p className="text-xs mt-3" style={{ color: '#D97706' }}>{printersErr}</p>}
+          {printersMsg && <p className="text-xs mt-3" style={{ color: t.greenText }}>{printersMsg}</p>}
+          <button
+            onClick={handlePrintersSave}
+            disabled={printersSaving}
+            className="mt-4 px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            {printersSaving ? 'Enregistrement...' : 'Enregistrer les imprimantes'}
           </button>
         </div>
       )}

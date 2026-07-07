@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../ThemeContext';
+import { printKitchenTicket } from '../../printing';
 
 function useStatusStyles() {
   const { t } = useTheme();
@@ -33,6 +34,9 @@ export default function CommandesTab() {
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [businessDeliveryFee, setBusinessDeliveryFee] = useState(0);
+  const [kitchenPrinterIp, setKitchenPrinterIp] = useState('');
+  const [printingKitchen, setPrintingKitchen] = useState(false);
+  const [printErr, setPrintErr] = useState('');
   const { t } = useTheme();
   const statusStyles = useStatusStyles();
 
@@ -45,7 +49,20 @@ export default function CommandesTab() {
     api.get('/products').then(setProducts).catch(console.error);
     api.get('/auth/drivers').then(setDrivers).catch(console.error);
     api.get('/auth/business/delivery-fee').then(data => setBusinessDeliveryFee(data.deliveryFee)).catch(console.error);
+    api.get('/auth/business/printers').then(data => setKitchenPrinterIp(data.kitchenPrinterIp || '')).catch(console.error);
   }, []);
+
+  const printKitchen = async (order) => {
+    setPrintErr('');
+    setPrintingKitchen(true);
+    try {
+      await printKitchenTicket(kitchenPrinterIp, order, order.items);
+    } catch (err) {
+      setPrintErr(err.message);
+    } finally {
+      setPrintingKitchen(false);
+    }
+  };
 
   const activeOrders = orders.filter(o => {
     if (['delivered', 'cancelled'].includes(o.status)) return false;
@@ -210,6 +227,13 @@ export default function CommandesTab() {
                   {orderTypeLabels[detail.order_type] || 'Livraison'}
                 </span>
               </div>
+
+              <button onClick={() => printKitchen(detail)} disabled={printingKitchen}
+                className="w-full py-2 rounded-lg text-xs font-semibold mb-2 disabled:opacity-50"
+                style={{ backgroundColor: t.tabBg, color: t.text1 }}>
+                {printingKitchen ? 'Impression...' : '🖨 Imprimer en cuisine'}
+              </button>
+              {printErr && <p className="text-xs mb-2" style={{ color: '#D97706' }}>{printErr}</p>}
 
               <div className="mt-4 space-y-3">
                 <div>

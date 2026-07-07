@@ -673,3 +673,10 @@ ALTER TABLE businesses ADD COLUMN IF NOT EXISTS secondary_color VARCHAR(7);
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check
   CHECK (role IN ('manager', 'driver', 'manager_driver', 'staff'));
+
+-- ============================================================
+-- IMPRIMANTES RESEAU (tickets cuisine + recus, protocole Star WebPRNT)
+-- ============================================================
+
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS kitchen_printer_ip VARCHAR(45);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS receipt_printer_ip VARCHAR(45);

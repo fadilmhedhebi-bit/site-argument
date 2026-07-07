@@ -638,6 +638,45 @@ router.patch('/business/branding', authenticate, requireRole('manager'), async (
   }
 });
 
+const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+// GET /api/auth/business/printers - adresses IP des imprimantes cuisine/recu
+router.get('/business/printers', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT kitchen_printer_ip, receipt_printer_ip FROM businesses WHERE id = $1',
+      [req.user.businessId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
+    const b = result.rows[0];
+    res.json({ kitchenPrinterIp: b.kitchen_printer_ip, receiptPrinterIp: b.receipt_printer_ip });
+  } catch (err) {
+    console.error('Get printers error:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/auth/business/printers
+router.patch('/business/printers', authenticate, requireRole('manager'), async (req, res) => {
+  const { kitchenPrinterIp, receiptPrinterIp } = req.body;
+  if (kitchenPrinterIp && !IP_RE.test(kitchenPrinterIp)) {
+    return res.status(400).json({ error: 'Adresse IP imprimante cuisine invalide' });
+  }
+  if (receiptPrinterIp && !IP_RE.test(receiptPrinterIp)) {
+    return res.status(400).json({ error: 'Adresse IP imprimante reçu invalide' });
+  }
+  try {
+    await pool.query(
+      'UPDATE businesses SET kitchen_printer_ip = $1, receipt_printer_ip = $2, updated_at = NOW() WHERE id = $3',
+      [kitchenPrinterIp || null, receiptPrinterIp || null, req.user.businessId]
+    );
+    res.json({ kitchenPrinterIp: kitchenPrinterIp || null, receiptPrinterIp: receiptPrinterIp || null });
+  } catch (err) {
+    console.error('Update printers error:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour' });
+  }
+});
+
 // PATCH /api/auth/role
 router.patch('/role', authenticate, requireRole('manager'), async (req, res) => {
   const { role } = req.body;
