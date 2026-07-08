@@ -17,6 +17,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import ReservationPublicPage from './pages/ReservationPublicPage';
 import PlatformAdminLoginPage from './pages/PlatformAdminLoginPage';
 import PlatformAdminDashboardPage from './pages/PlatformAdminDashboardPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 function ProtectedRoute({ children, roles }) {
   const user = useAuthStore((s) => s.user);
@@ -49,6 +50,8 @@ export default function App() {
         <Route path="/reservation/:reservationNumber" element={<ReservationPublicPage />} />
         <Route path="/suivi" element={<SuiviCommandePage />} />
         <Route path="/suivi/:orderNumber" element={<SuiviCommandePage />} />
+        <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/admin/login" element={<PlatformAdminLoginPage />} />
         <Route path="/admin" element={<PlatformAdminDashboardPage />} />
 
