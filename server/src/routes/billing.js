@@ -31,14 +31,26 @@ function periodEndOf(subscription) {
   return ts ? new Date(ts * 1000) : null;
 }
 
+// L'abonnement peut contenir plusieurs items (ex: option materiel en plus du
+// forfait) : on cherche celui dont le prix correspond a un forfait connu.
+function planOf(subscription) {
+  const priceIds = (subscription.items?.data || []).map(item => item.price?.id);
+  for (const [plan, priceId] of Object.entries(STRIPE_PRICE_BY_PLAN)) {
+    if (priceId && priceIds.includes(priceId)) return plan;
+  }
+  return null;
+}
+
 async function syncSubscription(subscription) {
   const status = mapStripeStatus(subscription.status);
+  const plan = planOf(subscription);
 
   await pool.query(
     `UPDATE businesses SET
      subscription_status = $1,
      stripe_subscription_id = $2,
      current_period_end = $3,
+     plan = COALESCE($5, plan),
      payment_failed_at = CASE
        WHEN $1 = 'active' THEN NULL
        WHEN $1 = 'past_due' AND payment_failed_at IS NULL THEN NOW()
@@ -46,7 +58,7 @@ async function syncSubscription(subscription) {
      END,
      updated_at = NOW()
      WHERE stripe_customer_id = $4`,
-    [status, subscription.id, periodEndOf(subscription), subscription.customer]
+    [status, subscription.id, periodEndOf(subscription), subscription.customer, plan]
   );
 }
 

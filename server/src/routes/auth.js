@@ -8,7 +8,6 @@ import pool from '../config/db.js';
 import { generateToken, authenticate, requireRole } from '../middleware/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.js';
 import { PLANS, DEFAULT_PLAN, teamLimitFor } from '../config/plans.js';
-import { stripe, STRIPE_PRICE_BY_PLAN, isStripeConfigured } from '../utils/stripe.js';
 
 async function assertTeamSlotAvailable(businessId) {
   const biz = await pool.query('SELECT plan FROM businesses WHERE id = $1', [businessId]);
@@ -575,47 +574,6 @@ router.patch('/business/delivery-fee', authenticate, requireRole('manager'), asy
   } catch (err) {
     console.error('Update delivery fee error:', err);
     res.status(500).json({ error: 'Erreur lors de la mise à jour' });
-  }
-});
-
-// PATCH /api/auth/business/plan - changer de forfait a tout moment. Pendant
-// l'essai, on ne fait que mettre a jour la colonne (aucun abonnement Stripe
-// n'existe encore). Une fois abonne, on repercute le changement sur
-// l'abonnement Stripe existant (changement de prix + proratisation) pour que
-// la facturation reste alignee avec le forfait choisi.
-router.patch('/business/plan', authenticate, requireRole('manager'), async (req, res) => {
-  const { plan } = req.body;
-  if (!PLANS.includes(plan)) {
-    return res.status(400).json({ error: `Forfait invalide. Choix: ${PLANS.join(', ')}` });
-  }
-  try {
-    const biz = await pool.query(
-      'SELECT subscription_status, stripe_subscription_id, plan FROM businesses WHERE id = $1',
-      [req.user.businessId]
-    );
-    if (!biz.rows.length) return res.status(404).json({ error: 'Commerce non trouvé' });
-    const { subscription_status, stripe_subscription_id } = biz.rows[0];
-
-    if (['active', 'past_due'].includes(subscription_status) && stripe_subscription_id) {
-      if (!isStripeConfigured()) {
-        return res.status(503).json({ error: 'Facturation non configurée (Stripe absent)' });
-      }
-      const newPrice = STRIPE_PRICE_BY_PLAN[plan];
-      if (!newPrice) return res.status(400).json({ error: 'Tarif Stripe non configuré pour ce forfait' });
-
-      const subscription = await stripe.subscriptions.retrieve(stripe_subscription_id);
-      const planItem = subscription.items.data[0];
-      await stripe.subscriptions.update(stripe_subscription_id, {
-        items: [{ id: planItem.id, price: newPrice }],
-        proration_behavior: 'create_prorations',
-      });
-    }
-
-    await pool.query('UPDATE businesses SET plan = $1, updated_at = NOW() WHERE id = $2', [plan, req.user.businessId]);
-    res.json({ plan });
-  } catch (err) {
-    console.error('Update plan error:', err);
-    res.status(500).json({ error: 'Erreur lors du changement de forfait' });
   }
 });
 

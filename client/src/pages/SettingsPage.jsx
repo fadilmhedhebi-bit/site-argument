@@ -40,11 +40,6 @@ export default function SettingsPage() {
   const [brandErr, setBrandErr] = useState('');
   const [brandSaving, setBrandSaving] = useState(false);
   const [withEquipment, setWithEquipment] = useState(false);
-  const [changingPlan, setChangingPlan] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [planMsg, setPlanMsg] = useState('');
-  const [planErr, setPlanErr] = useState('');
-  const [planSaving, setPlanSaving] = useState(false);
   const [printers, setPrinters] = useState({ kitchenPrinterIp: '', receiptPrinterIp: '' });
   const [printersMsg, setPrintersMsg] = useState('');
   const [printersErr, setPrintersErr] = useState('');
@@ -111,30 +106,6 @@ export default function SettingsPage() {
       setBrandErr(err.message);
     } finally {
       setBrandSaving(false);
-    }
-  };
-
-  const openPlanChange = () => {
-    setSelectedPlan(billing?.plan || 'starter');
-    setPlanErr('');
-    setPlanMsg('');
-    setChangingPlan(true);
-  };
-
-  const handlePlanChange = async () => {
-    setPlanErr('');
-    setPlanMsg('');
-    setPlanSaving(true);
-    try {
-      await api.patch('/auth/business/plan', { plan: selectedPlan });
-      setBilling(b => ({ ...b, plan: selectedPlan }));
-      updateUser({ plan: selectedPlan });
-      setPlanMsg('Forfait mis à jour');
-      setChangingPlan(false);
-    } catch (err) {
-      setPlanErr(err.message);
-    } finally {
-      setPlanSaving(false);
     }
   };
 
@@ -491,77 +462,36 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: `1px solid ${t.border}` }}>
             <div>
               <p className="font-medium" style={{ color: t.text1 }}>Forfait</p>
-              <p className="text-xs mt-0.5" style={{ color: t.text2 }}>
-                {billing.subscription_status === 'trialing'
-                  ? "Modifiable librement pendant la période d'essai"
-                  : ['active', 'past_due'].includes(billing.subscription_status)
-                  ? 'Le changement est immédiat, au prorata de la période en cours'
-                  : 'Choisissez le forfait à activer'}
-              </p>
+              <p className="text-xs mt-0.5" style={{ color: t.text2 }}>Géré depuis votre espace Stripe</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.accentBg, color: t.accent }}>
-                {PLAN_LABEL[billing.plan] || billing.plan}
-              </span>
-              {!changingPlan && (
-                <button onClick={openPlanChange} className="text-xs font-semibold hover:underline" style={{ color: t.accent }}>
-                  Changer
-                </button>
-              )}
-            </div>
+            <span className="text-sm font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.accentBg, color: t.accent }}>
+              {PLAN_LABEL[billing.plan] || billing.plan}
+            </span>
           </div>
 
-          {changingPlan && (
-            <div className="mb-4 space-y-2">
-              {PLAN_INFO.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setSelectedPlan(p.id)}
-                  className="w-full p-3 rounded-xl text-left transition-colors"
-                  style={{ border: `2px solid ${selectedPlan === p.id ? t.accent : t.border}` }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{p.label}</span>
-                    <span className="text-[10px] font-semibold uppercase" style={{ color: t.accent }}>{p.tagline}</span>
-                  </div>
-                </button>
-              ))}
-              {planErr && <p className="text-xs" style={{ color: '#D97706' }}>{planErr}</p>}
-              {planMsg && <p className="text-xs" style={{ color: t.greenText }}>{planMsg}</p>}
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => setChangingPlan(false)} className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.tabBg, color: t.text1 }}>
-                  Annuler
-                </button>
-                <button onClick={handlePlanChange} disabled={planSaving || selectedPlan === billing.plan} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: t.accent, color: '#fff' }}>
-                  {planSaving ? 'Enregistrement...' : 'Confirmer'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {billingErr && <p className="text-xs mb-3" style={{ color: '#D97706' }}>{billingErr}</p>}
-          {!changingPlan && (
-            <>
-              {!['active', 'past_due'].includes(billing.subscription_status) && (
-                <label className="flex items-center gap-2 mb-4 text-sm cursor-pointer" style={{ color: t.text1 }}>
-                  <input type="checkbox" checked={withEquipment} onChange={e => setWithEquipment(e.target.checked)} />
-                  Louer l'équipement (tablette, imprimante ticket) — +30€/mois
-                </label>
-              )}
-              <button
-                onClick={billing.subscription_status === 'active' || billing.subscription_status === 'past_due' ? goToPortal : goToCheckout}
-                disabled={billingLoading}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
-                style={{ backgroundColor: t.accent, color: '#fff' }}
-              >
-                {billingLoading
-                  ? 'Redirection...'
-                  : billing.subscription_status === 'active' || billing.subscription_status === 'past_due'
-                  ? 'Gérer mon abonnement'
-                  : `Démarrer mon abonnement — Forfait ${PLAN_LABEL[billing.plan] || ''}`}
-              </button>
-            </>
+          {!['active', 'past_due'].includes(billing.subscription_status) && (
+            <label className="flex items-center gap-2 mb-4 text-sm cursor-pointer" style={{ color: t.text1 }}>
+              <input type="checkbox" checked={withEquipment} onChange={e => setWithEquipment(e.target.checked)} />
+              Louer l'équipement (tablette, imprimante ticket) — +30€/mois
+            </label>
+          )}
+          <button
+            onClick={billing.subscription_status === 'active' || billing.subscription_status === 'past_due' ? goToPortal : goToCheckout}
+            disabled={billingLoading}
+            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accent, color: '#fff' }}
+          >
+            {billingLoading
+              ? 'Redirection...'
+              : billing.subscription_status === 'active' || billing.subscription_status === 'past_due'
+              ? 'Gérer mon abonnement'
+              : `Démarrer mon abonnement — Forfait ${PLAN_LABEL[billing.plan] || ''}`}
+          </button>
+          {['active', 'past_due'].includes(billing.subscription_status) && (
+            <p className="text-xs mt-3" style={{ color: t.text2 }}>
+              Le changement de forfait et la résiliation se font directement depuis le portail Stripe.
+            </p>
           )}
         </div>
       )}
