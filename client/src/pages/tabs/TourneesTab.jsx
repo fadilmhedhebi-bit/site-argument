@@ -4,7 +4,6 @@ import L from 'leaflet';
 import { io } from 'socket.io-client';
 import { api } from '../../utils/api';
 import { useAuthStore } from '../../stores/authStore';
-import { useNotificationStore } from '../../stores/notificationStore';
 import { useTheme } from '../../ThemeContext';
 import 'leaflet/dist/leaflet.css';
 
@@ -62,7 +61,6 @@ export default function TourneesTab() {
   const [selected, setSelected] = useState([]);
   const [tourForm, setTourForm] = useState({ driverId: '', name: '' });
   const { token } = useAuthStore();
-  const addNotification = useNotificationStore((s) => s.addNotification);
   const socketRef = useRef(null);
 
   const loadData = () => {
@@ -99,10 +97,7 @@ export default function TourneesTab() {
       setDriverPositions(prev => { const next = { ...prev }; delete next[data.driverId]; return next; });
     });
 
-    socket.on('order:new', (data) => {
-      addNotification({ title: 'Nouvelle commande', message: `${data.orderNumber} - ${data.customerName}` });
-      loadData();
-    });
+    socket.on('order:new', () => loadData());
 
     socket.on('order:status', () => loadData());
     socket.on('tour:created', () => loadData());

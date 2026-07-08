@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { useNotificationStore } from '../stores/notificationStore';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
 import { shadows } from '../theme';
@@ -22,6 +23,7 @@ const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 export default function SettingsPage() {
   const { user, updateUser, logout } = useAuthStore();
   const { t, isDark, toggleTheme, applyBusinessColors } = useTheme();
+  const { soundEnabled, toggleSound } = useNotificationStore();
   const navigate = useNavigate();
 
   const [profileForm, setProfileForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
@@ -229,6 +231,24 @@ export default function SettingsPage() {
             <span
               className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow-sm"
               style={{ left: isDark ? '22px' : '2px' }}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+          <div>
+            <p className="font-medium" style={{ color: t.text1 }}>Son de notification</p>
+            <p className="text-xs mt-0.5" style={{ color: t.text2 }}>
+              {soundEnabled ? 'Un son est joué à chaque nouvelle commande' : 'Notifications silencieuses'}
+            </p>
+          </div>
+          <button
+            onClick={toggleSound}
+            className="relative w-12 h-7 rounded-full transition-colors"
+            style={{ backgroundColor: soundEnabled ? t.accent : t.text3 }}
+          >
+            <span
+              className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow-sm"
+              style={{ left: soundEnabled ? '22px' : '2px' }}
             />
           </button>
         </div>

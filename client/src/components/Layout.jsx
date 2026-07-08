@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { useTheme } from '../ThemeContext';
@@ -8,12 +10,27 @@ import SubscriptionGate from './SubscriptionGate';
 
 const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Livreur', driver: 'Livreur', staff: 'Équipier' };
 
+// Roles qui gerent les commandes et doivent etre alertes des nouvelles -
+// un livreur pur ne voit pas le module commandes, pas la peine de le sonner.
+const NOTIFY_ROLES = ['manager', 'manager_driver', 'staff'];
+
 export default function Layout() {
-  const { user, logout } = useAuthStore();
-  const { notifications, unreadCount, markAllRead } = useNotificationStore();
+  const { user, token, logout } = useAuthStore();
+  const { notifications, unreadCount, markAllRead, addNotification } = useNotificationStore();
   const { isDark, toggleTheme, t } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!token || !NOTIFY_ROLES.includes(user?.role)) return;
+    const socket = io(import.meta.env.VITE_API_URL || '/', { auth: { token }, path: '/socket.io' });
+
+    socket.on('order:new', (data) => {
+      addNotification({ title: 'Nouvelle commande', message: `${data.orderNumber} - ${data.customerName}` });
+    });
+
+    return () => socket.disconnect();
+  }, [token, user?.role]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: t.bg }}>
