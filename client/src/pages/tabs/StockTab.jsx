@@ -15,6 +15,7 @@ export default function StockTab() {
   const [productForm, setProductForm] = useState({ name: '', description: '', price: '', categoryId: '', stockQuantity: '', stockAlertThreshold: '5' });
   const [promoForm, setPromoForm] = useState({ code: '', type: 'percentage', value: '', minOrder: '', maxUses: '', expiresAt: '' });
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [deliveryFeeEnabled, setDeliveryFeeEnabled] = useState(true);
   const [deliveryFeeSaved, setDeliveryFeeSaved] = useState(false);
 
   const load = () => {
@@ -28,12 +29,15 @@ export default function StockTab() {
 
   useEffect(() => {
     load();
-    api.get('/auth/business/delivery-fee').then(data => setDeliveryFee(String(data.deliveryFee))).catch(console.error);
+    api.get('/auth/business/delivery-fee').then(data => {
+      setDeliveryFee(String(data.deliveryFee));
+      setDeliveryFeeEnabled(data.deliveryFee > 0);
+    }).catch(console.error);
   }, []);
 
   const saveDeliveryFee = async () => {
     try {
-      await api.patch('/auth/business/delivery-fee', { deliveryFee: parseFloat(deliveryFee) || 0 });
+      await api.patch('/auth/business/delivery-fee', { deliveryFee: deliveryFeeEnabled ? (parseFloat(deliveryFee) || 0) : 0 });
       setDeliveryFeeSaved(true);
       setTimeout(() => setDeliveryFeeSaved(false), 2000);
     } catch (err) { alert(err.message); }
@@ -257,13 +261,25 @@ export default function StockTab() {
       <div>
         <h3 className="text-lg font-heading mb-4" style={{ color: t.text1 }}>Frais de livraison</h3>
         <div className="rounded-xl p-4" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-          <p className="text-sm mb-3" style={{ color: t.text2 }}>Montant facture au client pour chaque commande en livraison. Mettez 0 pour ne pas facturer de frais.</p>
+          <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer" style={{ color: t.text1 }}>
+            <input
+              type="checkbox"
+              checked={deliveryFeeEnabled}
+              onChange={e => { setDeliveryFeeEnabled(e.target.checked); setDeliveryFeeSaved(false); }}
+            />
+            Facturer des frais de livraison
+          </label>
+          <p className="text-sm mb-3" style={{ color: t.text2 }}>
+            {deliveryFeeEnabled
+              ? 'Montant facturé au client pour chaque commande en livraison.'
+              : 'Aucun frais de livraison ne sera facturé aux clients.'}
+          </p>
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-[200px]">
               <input
-                type="number" step="0.01" min="0" value={deliveryFee}
+                type="number" step="0.01" min="0" value={deliveryFee} disabled={!deliveryFeeEnabled}
                 onChange={e => { setDeliveryFee(e.target.value); setDeliveryFeeSaved(false); }}
-                className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm pr-8" style={inputStyle} />
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none text-sm pr-8 disabled:opacity-50" style={inputStyle} />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: t.text2 }}>EUR</span>
             </div>
             <button onClick={saveDeliveryFee} className="px-5 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: t.accent, color: '#fff' }}>
