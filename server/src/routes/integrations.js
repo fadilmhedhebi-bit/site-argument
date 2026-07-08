@@ -9,6 +9,7 @@ import {
   isDeliverooConfigured,
   verifyUberEatsSignature,
   verifyDeliverooSignature,
+  getUberEatsAccessToken,
 } from '../utils/platformIntegrations.js';
 
 const router = Router();
@@ -160,12 +161,11 @@ async function createOrderFromExternalPlatform({ businessId, source, externalOrd
 // POST /api/integrations/uber-eats/webhook
 // Le webhook Uber Eats ne transporte qu'une notification (event_type,
 // resource_href) ; le detail complet de la commande se recupere via un GET
-// authentifie (OAuth2 client_credentials) sur resource_href. Cet appel de
-// suivi n'est pas encore implemente : il necessite un access token obtenu
-// avec UBER_EATS_CLIENT_ID/SECRET, absents tant que le partenariat n'est pas
-// actif. On verifie deja la signature et on accuse reception (Uber exige un
-// 200 rapide, sous peine de retries agressifs), en journalisant l'evenement
-// pour reprise une fois le partenariat homologue.
+// authentifie (OAuth2 client_credentials) sur resource_href. La structure
+// exacte du JSON renvoye (noms des champs client/adresse/articles) n'a pas pu
+// etre confirmee via la documentation publique : elle est journalisee en
+// entier ci-dessous pour etre validee sur une vraie commande sandbox avant
+// d'ecrire le mapping vers createOrderFromExternalPlatform(...).
 export async function uberEatsWebhookHandler(req, res) {
   const signature = req.headers['x-uber-signature'];
   if (!isUberEatsConfigured() || !verifyUberEatsSignature(req.body, signature)) {
@@ -180,8 +180,24 @@ export async function uberEatsWebhookHandler(req, res) {
   }
 
   console.log('Uber Eats webhook reçu:', payload.event_type, payload.meta?.resource_id || payload.meta?.status);
-  // TODO : GET payload.resource_href avec le token OAuth2, normaliser la
-  // reponse puis appeler createOrderFromExternalPlatform(...).
+
+  try {
+    if (payload.event_type === 'orders.notification' && payload.resource_href) {
+      const token = await getUberEatsAccessToken();
+      const orderRes = await fetch(payload.resource_href, { headers: { Authorization: `Bearer ${token}` } });
+      if (!orderRes.ok) {
+        console.error(`Uber Eats: échec de récupération de la commande (${orderRes.status})`);
+      } else {
+        const order = await orderRes.json();
+        console.log('Uber Eats order détail reçu:', JSON.stringify(order));
+        // TODO : mapper les champs reels (confirmes via les logs ci-dessus
+        // sur une commande de test) vers createOrderFromExternalPlatform(...).
+      }
+    }
+  } catch (err) {
+    console.error('Uber Eats webhook processing error:', err);
+  }
+
   res.status(200).json({ ok: true });
 }
 

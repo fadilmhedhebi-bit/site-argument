@@ -18,6 +18,44 @@ export function isUberEatsConfigured() {
   return Boolean(UBER_EATS_CLIENT_ID && UBER_EATS_CLIENT_SECRET && UBER_EATS_WEBHOOK_SECRET);
 }
 
+// Sandbox tant que l'app n'est pas homologuee/promue en production sur le
+// dashboard Uber (endpoint different : sandbox-login.uber.com vs login.uber.com).
+const UBER_EATS_TOKEN_URL = process.env.UBER_EATS_TOKEN_URL || 'https://sandbox-login.uber.com/oauth/v2/token';
+const UBER_EATS_SCOPES = 'eats.store eats.store.orders.read eats.store.orders.cancel eats.store.orders.restaurantdelivery.status eats.order';
+
+let cachedUberEatsToken = null; // { accessToken, expiresAt }
+
+// Recupere (et met en cache jusqu'a expiration) un access token OAuth2
+// client_credentials pour appeler l'API Uber Eats - notamment pour suivre
+// resource_href apres reception d'un webhook orders.notification.
+export async function getUberEatsAccessToken() {
+  if (!isUberEatsConfigured()) throw new Error('Intégration Uber Eats non configurée');
+  if (cachedUberEatsToken && cachedUberEatsToken.expiresAt > Date.now() + 30_000) {
+    return cachedUberEatsToken.accessToken;
+  }
+
+  const body = new URLSearchParams({
+    client_id: UBER_EATS_CLIENT_ID,
+    client_secret: UBER_EATS_CLIENT_SECRET,
+    grant_type: 'client_credentials',
+    scope: UBER_EATS_SCOPES,
+  });
+  const response = await fetch(UBER_EATS_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(`Échec de récupération du token Uber Eats (${response.status})`);
+  }
+  const data = await response.json();
+  cachedUberEatsToken = {
+    accessToken: data.access_token,
+    expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
+  };
+  return cachedUberEatsToken.accessToken;
+}
+
 export function isDeliverooConfigured() {
   return Boolean(DELIVEROO_CLIENT_ID && DELIVEROO_CLIENT_SECRET && DELIVEROO_WEBHOOK_SECRET);
 }
