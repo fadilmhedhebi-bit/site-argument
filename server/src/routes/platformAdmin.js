@@ -41,6 +41,40 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/platform-admin/bootstrap - Creation ponctuelle du premier compte
+// admin sans acces a un Shell (utile sur un plan Render gratuit). Protegee par
+// un token present uniquement en variable d'environnement : retirer
+// PLATFORM_ADMIN_BOOTSTRAP_TOKEN de Render une fois utilisee pour la desactiver.
+router.post('/bootstrap', async (req, res) => {
+  const expected = process.env.PLATFORM_ADMIN_BOOTSTRAP_TOKEN;
+  if (!expected || req.headers['x-bootstrap-token'] !== expected) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const { email, password, firstName, lastName } = req.body;
+  if (!email?.trim() || !password || !firstName?.trim() || !lastName?.trim()) {
+    return res.status(400).json({ error: 'email, password, firstName, lastName requis' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+  }
+
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await pool.query(
+      `INSERT INTO platform_admins (email, password_hash, first_name, last_name)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2, first_name = $3, last_name = $4
+       RETURNING id, email`,
+      [email.trim().toLowerCase(), passwordHash, firstName.trim(), lastName.trim()]
+    );
+    res.json({ ok: true, email: result.rows[0].email });
+  } catch (err) {
+    console.error('Bootstrap platform admin error:', err);
+    res.status(500).json({ error: 'Erreur lors de la création du compte' });
+  }
+});
+
 // GET /api/platform-admin/businesses - Liste de tous les commerces + statut abonnement
 router.get('/businesses', authenticatePlatform, async (req, res) => {
   const { status } = req.query;
