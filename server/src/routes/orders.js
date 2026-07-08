@@ -431,10 +431,12 @@ router.patch('/:id/status', authenticate, async (req, res) => {
       }
     }
 
-    // Ticket encaisse : sur place/a emporter finalisent a "ready", livraison a "delivered".
-    const isPaidTerminal = order.payment_status !== 'paid' && (
-      status === 'delivered' || (status === 'ready' && ['dine_in', 'takeaway'].includes(orderType))
-    );
+    // Ticket encaisse : le passage a "ready" pour sur place/a emporter ne finalise
+    // PAS le paiement - la commande doit rester visible dans le module Caisse
+    // jusqu'a l'encaissement reel (bouton "Encaisser", qui enregistre une
+    // cash_transaction PUIS appelle ce PATCH avec status: 'delivered'). C'est
+    // donc uniquement "delivered" qui finalise le paiement, pour tous les types.
+    const isPaidTerminal = order.payment_status !== 'paid' && status === 'delivered';
 
     const setClauses = ['status = $1', 'updated_at = NOW()'];
     const params = [status];
