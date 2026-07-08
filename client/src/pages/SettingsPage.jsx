@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
 import { shadows } from '../theme';
-import { PLAN_INFO } from '../planConfig';
+import { PLAN_INFO, isModuleAllowed } from '../planConfig';
 import { testPrint } from '../printing';
 
 const STATUS_LABEL = {
@@ -368,6 +368,32 @@ export default function SettingsPage() {
           >
             {printersSaving ? 'Enregistrement...' : 'Enregistrer les imprimantes'}
           </button>
+        </div>
+      )}
+
+      {/* Intégrations plateformes de livraison */}
+      {isManager && isModuleAllowed(user?.plan, 'integrations') && (
+        <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Plateformes de livraison</h2>
+          <p className="text-xs mb-4" style={{ color: t.text2 }}>
+            Recevez directement dans RestoLab les commandes passées sur Uber Eats et Deliveroo.
+            Cette intégration nécessite un partenariat technique homologué par chaque plateforme :
+            en attente d'approbation, la connexion n'est pas encore disponible.
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}` }}>
+              <span className="text-sm font-medium" style={{ color: t.text1 }}>Uber Eats</span>
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ backgroundColor: t.blueBg, color: t.blueText }}>
+                En attente d'homologation
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}` }}>
+              <span className="text-sm font-medium" style={{ color: t.text1 }}>Deliveroo</span>
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ backgroundColor: t.blueBg, color: t.blueText }}>
+                En attente d'homologation
+              </span>
+            </div>
+          </div>
         </div>
       )}
 

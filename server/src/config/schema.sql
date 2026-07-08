@@ -680,3 +680,27 @@ ALTER TABLE users ADD CONSTRAINT users_role_check
 
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS kitchen_printer_ip VARCHAR(45);
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS receipt_printer_ip VARCHAR(45);
+
+-- ============================================================
+-- PLATEFORMES DE LIVRAISON (Uber Eats / Deliveroo)
+-- Identifiant de la boutique cote plateforme, transmis lors de
+-- l'homologation partenaire ; les cles d'application (client id/secret,
+-- secret webhook) sont globales a RestoLab et vivent en variables
+-- d'environnement (voir server/src/utils/platformIntegrations.js), pas ici.
+-- ============================================================
+
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS uber_eats_store_id VARCHAR(255);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS uber_eats_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS deliveroo_site_id VARCHAR(255);
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS deliveroo_enabled BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'internal';
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_source_check;
+ALTER TABLE orders ADD CONSTRAINT orders_source_check CHECK (source IN ('internal', 'uber_eats', 'deliveroo'));
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS external_order_id VARCHAR(255);
+
+-- Deduplication : Uber Eats/Deliveroo renvoient parfois le meme evenement
+-- plusieurs fois (retries webhook) - un meme external_order_id ne doit
+-- jamais creer deux commandes pour le meme commerce/plateforme.
+CREATE UNIQUE INDEX IF NOT EXISTS orders_external_unique
+  ON orders(business_id, source, external_order_id) WHERE external_order_id IS NOT NULL;

@@ -13,7 +13,7 @@ export const PLAN_TEAM_LIMITS = {
 export const PLAN_MODULES = {
   starter: ['commandes', 'reservations', 'caisse', 'menu', 'stats', 'historique', 'equipe'],
   standard: ['commandes', 'reservations', 'caisse', 'menu', 'stats', 'historique', 'equipe', 'tournees', 'clients'],
-  premium: ['commandes', 'reservations', 'caisse', 'menu', 'stats', 'historique', 'equipe', 'tournees', 'clients', 'tables', 'ingredients'],
+  premium: ['commandes', 'reservations', 'caisse', 'menu', 'stats', 'historique', 'equipe', 'tournees', 'clients', 'tables', 'ingredients', 'integrations'],
 };
 
 export function normalizePlan(plan) {
