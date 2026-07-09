@@ -1,23 +1,37 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useNotificationStore } from './stores/notificationStore';
-import { ThemeProvider } from './ThemeContext';
+import { ThemeProvider, useTheme } from './ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import LivreurPage from './pages/LivreurPage';
-import ClientCommandePage from './pages/ClientCommandePage';
-import CustomerPage from './pages/CustomerPage';
-import SuiviCommandePage from './pages/SuiviCommandePage';
-import SettingsPage from './pages/SettingsPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import ReservationPublicPage from './pages/ReservationPublicPage';
-import PlatformAdminLoginPage from './pages/PlatformAdminLoginPage';
-import PlatformAdminDashboardPage from './pages/PlatformAdminDashboardPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+
+// Chaque page part dans son propre chunk JS, charge a la demande plutot que
+// tout regroupe dans un seul bundle initial (recharts/leaflet notamment ne
+// sont utilises que par quelques pages, pas la peine de les telecharger pour
+// un simple ecran de connexion).
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const LivreurPage = lazy(() => import('./pages/LivreurPage'));
+const ClientCommandePage = lazy(() => import('./pages/ClientCommandePage'));
+const CustomerPage = lazy(() => import('./pages/CustomerPage'));
+const SuiviCommandePage = lazy(() => import('./pages/SuiviCommandePage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const ReservationPublicPage = lazy(() => import('./pages/ReservationPublicPage'));
+const PlatformAdminLoginPage = lazy(() => import('./pages/PlatformAdminLoginPage'));
+const PlatformAdminDashboardPage = lazy(() => import('./pages/PlatformAdminDashboardPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+
+function PageLoading() {
+  const { t } = useTheme();
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: t.bg }}>
+      <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: t.border, borderTopColor: t.accent }} />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, roles }) {
   const user = useAuthStore((s) => s.user);
@@ -41,6 +55,7 @@ export default function App() {
     <ThemeProvider>
     <BrowserRouter>
       <ErrorBoundary>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -68,6 +83,7 @@ export default function App() {
           } />
         </Route>
       </Routes>
+      </Suspense>
       </ErrorBoundary>
     </BrowserRouter>
     </ThemeProvider>

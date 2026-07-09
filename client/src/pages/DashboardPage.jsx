@@ -1,19 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../utils/api';
 import { isModuleAllowed } from '../planConfig';
-import CommandesTab from './tabs/CommandesTab';
-import TourneesTab from './tabs/TourneesTab';
-import StatsTab from './tabs/StatsTab';
-import MenuTab from './tabs/MenuTab';
-import IngredientsTab from './tabs/IngredientsTab';
-import TablesTab from './tabs/TablesTab';
-import ReservationsTab from './tabs/ReservationsTab';
-import CaisseTab from './tabs/CaisseTab';
-import ClientsTab from './tabs/ClientsTab';
-import EquipeTab from './tabs/EquipeTab';
-import HistoriqueTab from './tabs/HistoriqueTab';
+
+// Chunks separes par module : TourneesTab (leaflet) et StatsTab (recharts)
+// sont lourds mais rarement ouverts ensemble - pas la peine de les charger
+// avant que l'utilisateur clique dessus.
+const CommandesTab = lazy(() => import('./tabs/CommandesTab'));
+const TourneesTab = lazy(() => import('./tabs/TourneesTab'));
+const StatsTab = lazy(() => import('./tabs/StatsTab'));
+const MenuTab = lazy(() => import('./tabs/MenuTab'));
+const IngredientsTab = lazy(() => import('./tabs/IngredientsTab'));
+const TablesTab = lazy(() => import('./tabs/TablesTab'));
+const ReservationsTab = lazy(() => import('./tabs/ReservationsTab'));
+const CaisseTab = lazy(() => import('./tabs/CaisseTab'));
+const ClientsTab = lazy(() => import('./tabs/ClientsTab'));
+const EquipeTab = lazy(() => import('./tabs/EquipeTab'));
+const HistoriqueTab = lazy(() => import('./tabs/HistoriqueTab'));
 
 const moduleGroups = [
   {
@@ -155,7 +159,9 @@ export default function DashboardPage() {
           </svg>
           <span>{mod?.label}</span>
         </button>
-        <ModuleComponent />
+        <Suspense fallback={<div className="w-6 h-6 rounded-full border-2 animate-spin mx-auto mt-10" style={{ borderColor: t.border, borderTopColor: t.accent }} />}>
+          <ModuleComponent />
+        </Suspense>
       </div>
     );
   }
