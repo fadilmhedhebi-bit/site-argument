@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import RestoLabLogo from '../components/RestoLabLogo';
+import BusinessLogo from '../components/BusinessLogo';
 import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
 import { colors } from '../theme';
@@ -103,7 +103,17 @@ export default function CustomerPage() {
     if (token) loadCustomerData();
   }, [token]);
 
-  useEffect(() => () => applyBusinessColors({ primaryColor: null, secondaryColor: null }), []);
+  // Chargee independamment du login : la marque du commerce (nom, logo,
+  // couleurs) doit deja s'afficher sur l'ecran de connexion, avant meme que
+  // le client se soit authentifie.
+  useEffect(() => {
+    api.get(`/products/public/${businessId}`).then(data => {
+      setMenu(data);
+      setBusinessDeliveryFee(parseFloat(data.business?.delivery_fee ?? 0));
+      applyBusinessColors({ primaryColor: data.business?.primary_color, secondaryColor: data.business?.secondary_color });
+    }).catch(console.error);
+    return () => applyBusinessColors({ primaryColor: null, secondaryColor: null });
+  }, [businessId]);
 
   useEffect(() => {
     if (customer) {
@@ -113,18 +123,14 @@ export default function CustomerPage() {
 
   const loadCustomerData = async () => {
     try {
-      const [profile, loyaltyData, ordersList, menuData] = await Promise.all([
+      const [profile, loyaltyData, ordersList] = await Promise.all([
         customerRequest('GET', '/customers/me', null, token),
         customerRequest('GET', '/customers/me/loyalty', null, token),
         customerRequest('GET', '/customers/me/orders', null, token),
-        api.get(`/products/public/${businessId}`),
       ]);
       setCustomer(profile);
       setLoyalty(loyaltyData);
       setOrders(ordersList);
-      setMenu(menuData);
-      setBusinessDeliveryFee(parseFloat(menuData.business?.delivery_fee ?? 0));
-      applyBusinessColors({ primaryColor: menuData.business?.primary_color, secondaryColor: menuData.business?.secondary_color });
     } catch (err) {
       if (err.message.includes('Token') || err.message.includes('401')) logout();
     }
@@ -277,7 +283,7 @@ export default function CustomerPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
-            <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
+            <div className="flex justify-center mb-3"><BusinessLogo logoUrl={menu.business?.logo_url} size={48} /></div>
             <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Nouveau mot de passe</h2>
           </div>
           <form onSubmit={handleResetPassword} className="space-y-3">
@@ -332,7 +338,7 @@ export default function CustomerPage() {
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
           <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
             <div className="text-center mb-6">
-              <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
+              <div className="flex justify-center mb-3"><BusinessLogo logoUrl={menu.business?.logo_url} size={48} /></div>
               <h2 className="text-xl font-bold" style={{ color: t.text1 }}>Mot de passe oublié</h2>
               <p className="text-sm mt-1" style={{ color: t.text2 }}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
             </div>
@@ -370,8 +376,8 @@ export default function CustomerPage() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: authGradient }}>
         <div className="rounded-[14px] shadow-sm w-full max-w-md p-8" style={{ backgroundColor: t.cardBg }}>
           <div className="text-center mb-6">
-            <div className="flex justify-center mb-3"><RestoLabLogo size={48} /></div>
-            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>RestoLab</h1>
+            <div className="flex justify-center mb-3"><BusinessLogo logoUrl={menu.business?.logo_url} size={48} /></div>
+            <h1 className="text-3xl font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>{menu.business?.name || 'Espace client'}</h1>
             <p className="text-sm mt-1" style={{ color: t.text2 }}>Espace client</p>
           </div>
 
@@ -452,9 +458,8 @@ export default function CustomerPage() {
       <header className="sticky top-0 z-40" style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <RestoLabLogo size={28} />
-            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>RestoLab</span>
-            <span className="text-xs ml-1" style={{ color: t.text2 }}>{customer?.businessName}</span>
+            <BusinessLogo logoUrl={menu.business?.logo_url} size={28} />
+            <span className="text-lg font-bold tracking-[-1.5px]" style={{ color: t.text1 }}>{menu.business?.name || customer?.businessName}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs" style={{ color: t.text2 }}>{customer?.firstName}</span>
@@ -507,11 +512,11 @@ export default function CustomerPage() {
             <div>
               <h3 className="text-sm font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h3>
               <div className="flex flex-col gap-2">
-                {['Entrées', 'Tapas', 'Plats', 'Desserts', 'Cocktails', 'Mocktails', 'Softs'].map(label => (
-                  <button key={label} onClick={() => { setView('order'); setOrderStep('menu'); }}
+                {menu.categories.map(cat => (
+                  <button key={cat.id} onClick={() => { setView('order'); setOrderStep('menu'); }}
                     className="flex items-center px-4 py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                     style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{label}</span>
+                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{cat.name}</span>
                   </button>
                 ))}
               </div>
@@ -617,7 +622,7 @@ export default function CustomerPage() {
             <div className="rounded-2xl p-6 text-white" style={{ background: isDark ? `linear-gradient(160deg, ${colors.oliveDark}, #17160F)` : 'linear-gradient(160deg, #5C6B3C, #3A4427)' }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold opacity-80">Carte de fidélité</span>
-                <span className="text-xs opacity-60">RestoLab</span>
+                <span className="text-xs opacity-60">{menu.business?.name}</span>
               </div>
               <p className="text-4xl font-heading">{loyalty?.points || 0}</p>
               <p className="text-sm opacity-80 mt-1">points disponibles</p>

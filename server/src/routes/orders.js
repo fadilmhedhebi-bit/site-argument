@@ -355,8 +355,11 @@ router.get('/track/:orderNumber', async (req, res) => {
               o.subtotal, o.delivery_fee, o.discount_amount,
               o.payment_method, o.estimated_delivery_at, o.delivered_at, o.created_at,
               o.order_type, o.table_number,
-              u.first_name as driver_first_name, u.last_name as driver_last_name
-       FROM orders o LEFT JOIN users u ON u.id = o.driver_id
+              u.first_name as driver_first_name, u.last_name as driver_last_name,
+              b.name as business_name, b.logo_url, b.primary_color, b.secondary_color
+       FROM orders o
+       LEFT JOIN users u ON u.id = o.driver_id
+       JOIN businesses b ON b.id = o.business_id
        WHERE o.order_number = $1`,
       [orderNumber]
     );

@@ -43,6 +43,22 @@ const upload = multer({
   },
 });
 
+const logoStorage = multer.diskStorage({
+  destination: path.join(__dirname, '../../uploads/logos'),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `${crypto.randomUUID()}${ext}`);
+  },
+});
+const uploadLogo = multer({
+  storage: logoStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Format image invalide'));
+  },
+});
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { businessName, businessAddress, businessPhone, firstName, lastName, email, phone, username, password, plan } = req.body;
@@ -614,6 +630,28 @@ router.patch('/business/branding', authenticate, requireRole('manager'), async (
     console.error('Update branding error:', err);
     res.status(500).json({ error: 'Erreur lors de la mise à jour' });
   }
+});
+
+// POST /api/auth/business/logo - Upload du logo du commerce, affiche aux
+// clients finaux sur les pages de commande/suivi/reservation (a la place du
+// symbole RestoLab generique).
+router.post('/business/logo', authenticate, requireRole('manager'), (req, res) => {
+  uploadLogo.single('logo')(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'Image trop volumineuse (max 2 Mo)' });
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Aucune image envoyée' });
+
+    try {
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      await pool.query('UPDATE businesses SET logo_url = $1, updated_at = NOW() WHERE id = $2', [logoUrl, req.user.businessId]);
+      res.json({ logoUrl });
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      res.status(500).json({ error: "Erreur lors de l'upload" });
+    }
+  });
 });
 
 const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;

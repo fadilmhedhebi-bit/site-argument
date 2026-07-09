@@ -135,7 +135,8 @@ router.get('/public/:reservationNumber', async (req, res) => {
     const result = await pool.query(
       `SELECT r.reservation_number, r.customer_last_name, r.customer_first_name,
        r.reservation_date, r.reservation_time, r.party_size, r.status,
-       b.name as business_name, b.address as business_address, b.phone as business_phone
+       b.name as business_name, b.address as business_address, b.phone as business_phone,
+       b.logo_url, b.primary_color, b.secondary_color
        FROM reservations r
        JOIN businesses b ON b.id = r.business_id
        WHERE r.reservation_number = $1`,

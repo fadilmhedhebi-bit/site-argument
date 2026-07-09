@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import RestoLabLogo from '../components/RestoLabLogo';
+import BusinessLogo from '../components/BusinessLogo';
 
 const statusLabels = { confirmed: 'Confirmée', cancelled: 'Annulée', completed: 'Terminée', no_show: 'Non présenté' };
 
@@ -31,7 +31,7 @@ export default function ReservationPublicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <RestoLabLogo size={40} />
+          <BusinessLogo size={40} />
           <h1 className="text-xl font-bold mt-4 text-gray-800">Réservation introuvable</h1>
           <p className="text-gray-500 mt-2">{error}</p>
         </div>
@@ -44,8 +44,8 @@ export default function ReservationPublicPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#f5f7f5' }}>
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md overflow-hidden">
-        <div className="px-6 py-5 text-center" style={{ backgroundColor: '#5C6B3C' }}>
-          <RestoLabLogo size={36} color="#fff" />
+        <div className="px-6 py-5 text-center" style={{ backgroundColor: data.primary_color || '#5C6B3C' }}>
+          <BusinessLogo logoUrl={data.logo_url} size={36} />
           <h1 className="text-lg font-bold text-white mt-2">{data.business_name}</h1>
         </div>
 
@@ -91,7 +91,7 @@ export default function ReservationPublicPage() {
             {data.business_phone && (
               <div>
                 <p className="text-xs text-gray-400">Telephone</p>
-                <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: '#5C6B3C' }}>{data.business_phone}</a>
+                <a href={`tel:${data.business_phone}`} className="font-semibold" style={{ color: data.primary_color || '#5C6B3C' }}>{data.business_phone}</a>
               </div>
             )}
           </div>

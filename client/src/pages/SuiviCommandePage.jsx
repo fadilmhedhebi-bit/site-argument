@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import RestoLabLogo from '../components/RestoLabLogo';
+import BusinessLogo from '../components/BusinessLogo';
 import { useTheme } from '../ThemeContext';
 
 const STEPS = [
@@ -12,7 +12,7 @@ const STEPS = [
 
 export default function SuiviCommandePage() {
   const { orderNumber: paramOrder } = useParams();
-  const { t } = useTheme();
+  const { t, applyBusinessColors } = useTheme();
   const [search, setSearch] = useState(paramOrder || '');
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
@@ -24,10 +24,15 @@ export default function SuiviCommandePage() {
     setLoading(true);
     setError('');
     api.get(`/orders/track/${orderNum.toUpperCase()}`)
-      .then(setOrder)
+      .then(data => {
+        setOrder(data);
+        applyBusinessColors({ primaryColor: data.primary_color, secondaryColor: data.secondary_color });
+      })
       .catch(err => { setError(err.message); setOrder(null); })
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => () => applyBusinessColors({ primaryColor: null, secondaryColor: null }), []);
 
   useEffect(() => { if (paramOrder) fetchOrder(paramOrder); }, [paramOrder]);
 
@@ -46,10 +51,12 @@ export default function SuiviCommandePage() {
     <div style={{ backgroundColor: t.bg, minHeight: '100vh' }}>
       <header style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2.5">
-          <RestoLabLogo size={28} />
+          <BusinessLogo logoUrl={order?.logo_url} size={28} />
           <div>
-            <h1 className="text-lg font-bold tracking-[-0.5px]" style={{ color: t.text1 }}>Suivi de commande</h1>
-            <p className="text-[10px] font-medium uppercase tracking-[2.5px]" style={{ color: t.accent }}>RestoLab</p>
+            <h1 className="text-lg font-bold tracking-[-0.5px]" style={{ color: t.text1 }}>{order?.business_name || 'Suivi de commande'}</h1>
+            <p className="text-[10px] font-medium uppercase tracking-[2.5px]" style={{ color: t.accent }}>
+              {order?.business_name ? 'Suivi de commande' : 'RestoLab'}
+            </p>
           </div>
         </div>
       </header>

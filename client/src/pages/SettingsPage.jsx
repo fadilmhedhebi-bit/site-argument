@@ -41,6 +41,9 @@ export default function SettingsPage() {
   const [brandMsg, setBrandMsg] = useState('');
   const [brandErr, setBrandErr] = useState('');
   const [brandSaving, setBrandSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoErr, setLogoErr] = useState('');
   const [withEquipment, setWithEquipment] = useState(false);
   const [printers, setPrinters] = useState({ kitchenPrinterIp: '', receiptPrinterIp: '' });
   const [printersMsg, setPrintersMsg] = useState('');
@@ -60,6 +63,7 @@ export default function SettingsPage() {
         primaryColor: data.primaryColor || '#5C6B3C',
         secondaryColor: data.secondaryColor || '#D4AF37',
       });
+      setLogoUrl(data.logoUrl || null);
     }).catch(() => {});
   }, [isManager]);
 
@@ -108,6 +112,25 @@ export default function SettingsPage() {
       setBrandErr(err.message);
     } finally {
       setBrandSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return setLogoErr('Image trop volumineuse (max 2 Mo)');
+
+    setLogoUploading(true);
+    setLogoErr('');
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const result = await api.upload('/auth/business/logo', formData);
+      setLogoUrl(result.logoUrl);
+    } catch (err) {
+      setLogoErr(err.message);
+    } finally {
+      setLogoUploading(false);
     }
   };
 
@@ -257,7 +280,28 @@ export default function SettingsPage() {
       {/* Branding */}
       {isManager && (
         <div className="rounded-2xl p-6" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}>
-          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Couleurs du commerce</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Identité visuelle</h2>
+          <p className="text-xs mb-3" style={{ color: t.text2 }}>
+            Logo affiché à vos clients sur les pages de commande, de suivi et de réservation.
+          </p>
+          <div className="flex items-center gap-4 mb-5">
+            {logoUrl ? (
+              <img src={`${API_BASE.replace('/api', '')}${logoUrl}`} alt="Logo" className="w-16 h-16 rounded-2xl object-cover" style={{ border: `1px solid ${t.border}` }} />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xs text-center px-1" style={{ backgroundColor: t.bg, border: `1px dashed ${t.border}`, color: t.text3 }}>
+                Aucun logo
+              </div>
+            )}
+            <div>
+              <label className="inline-block px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer" style={{ backgroundColor: t.tabBg, color: t.text1 }}>
+                {logoUploading ? 'Envoi...' : logoUrl ? 'Changer le logo' : 'Ajouter un logo'}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={logoUploading} />
+              </label>
+              {logoErr && <p className="text-xs mt-1" style={{ color: '#D97706' }}>{logoErr}</p>}
+            </div>
+          </div>
+
+          <h3 className="text-sm font-semibold uppercase tracking-wide mb-4" style={{ color: t.text2 }}>Couleurs du commerce</h3>
           <p className="text-xs mb-4" style={{ color: t.text2 }}>
             Personnalisez les couleurs affichées à vos clients et sur votre interface.
           </p>

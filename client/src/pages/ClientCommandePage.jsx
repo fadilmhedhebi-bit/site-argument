@@ -1,20 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
-import RestoLabLogo from '../components/RestoLabLogo';
+import BusinessLogo from '../components/BusinessLogo';
 import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
 import useCart from '../hooks/useCart';
-
-const menuCategories = [
-  { label: 'Entrées' },
-  { label: 'Tapas' },
-  { label: 'Plats' },
-  { label: 'Desserts' },
-  { label: 'Cocktails' },
-  { label: 'Mocktails' },
-  { label: 'Softs' },
-];
 
 export default function ClientCommandePage() {
   const { businessId } = useParams();
@@ -79,7 +69,7 @@ export default function ClientCommandePage() {
       <header style={{ backgroundColor: t.navBg, borderBottom: `1px solid ${t.border}` }}>
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <RestoLabLogo size={28} />
+            <BusinessLogo logoUrl={menu.business?.logo_url} size={28} />
             <div>
               <h1 className="text-lg font-bold tracking-[-0.5px]" style={{ color: t.text1 }}>{menu.business?.name || 'Restaurant'}</h1>
             {menu.business?.address && <p className="text-xs" style={{ color: t.text2 }}>{menu.business.address}</p>}
@@ -102,11 +92,11 @@ export default function ClientCommandePage() {
             <div>
               <h2 className="text-lg font-heading mb-3" style={{ color: t.text1 }}>Notre carte</h2>
               <div className="flex flex-col gap-2">
-                {menuCategories.map(cat => (
-                  <button key={cat.label} onClick={() => { setSelectedCategory(cat.label); setStep('menu'); }}
+                {menu.categories.map(cat => (
+                  <button key={cat.id} onClick={() => { setSelectedCategory(cat.name); setStep('menu'); }}
                     className="flex items-center px-4 py-3 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                     style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}` }}>
-                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{cat.label}</span>
+                    <span className="text-sm font-semibold" style={{ color: t.text1 }}>{cat.name}</span>
                   </button>
                 ))}
                 <button onClick={() => { setSelectedCategory(null); setStep('menu'); }}
@@ -164,11 +154,11 @@ export default function ClientCommandePage() {
                 style={!selectedCategory ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
                 Tout
               </button>
-              {menuCategories.map(cat => (
-                <button key={cat.label} onClick={() => setSelectedCategory(cat.label)}
+              {menu.categories.map(cat => (
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.name)}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                  style={selectedCategory === cat.label ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
-                  {cat.label}
+                  style={selectedCategory === cat.name ? { backgroundColor: t.accent, color: '#fff' } : { backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}` }}>
+                  {cat.name}
                 </button>
               ))}
             </div>
