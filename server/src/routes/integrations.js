@@ -144,7 +144,7 @@ async function createOrderFromExternalPlatform({ businessId, source, externalOrd
 
     await client.query('COMMIT');
 
-    notifyBusiness(businessId, 'order:new', { orderNumber: order.order_number, customerName: order.customer_name, total: order.total });
+    notifyBusiness(businessId, 'order:new', { orderNumber: order.order_number, customerName: order.customer_name, total: order.total, source });
     return order;
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

@@ -58,12 +58,6 @@ export const useNotificationStore = create((set, get) => ({
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(notification.title, { body: notification.message, icon: '/icon.png' });
     }
-
-    setTimeout(() => {
-      set((state) => ({
-        notifications: state.notifications.filter((n) => n.id !== id),
-      }));
-    }, 10000);
   },
 
   markAllRead: () => set({ unreadCount: 0 }),

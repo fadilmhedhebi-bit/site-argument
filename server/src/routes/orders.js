@@ -198,7 +198,7 @@ router.post('/', authenticate, async (req, res) => {
     await client.query('COMMIT');
 
     const order = orderResult.rows[0];
-    notifyBusiness(req.user.businessId, 'order:new', { orderNumber: order.order_number, customerName: order.customer_name, total: order.total });
+    notifyBusiness(req.user.businessId, 'order:new', { orderNumber: order.order_number, customerName: order.customer_name, total: order.total, source: 'staff' });
 
     res.status(201).json(order);
   } catch (err) {
@@ -330,7 +330,7 @@ router.post('/public/:businessId', authenticateOptional, async (req, res) => {
 
     await client.query('COMMIT');
 
-    notifyBusiness(businessId, 'order:new', { orderNumber: orderResult.rows[0].order_number, customerName: resolvedName, total });
+    notifyBusiness(businessId, 'order:new', { orderNumber: orderResult.rows[0].order_number, customerName: resolvedName, total, source: 'online' });
 
     res.status(201).json({ orderNumber: orderResult.rows[0].order_number, total: orderResult.rows[0].total });
   } catch (err) {

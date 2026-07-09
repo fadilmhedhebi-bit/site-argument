@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../stores/authStore';
@@ -14,19 +14,34 @@ const roleLabel = { manager: 'Gestionnaire', manager_driver: 'Gestionnaire + Liv
 // un livreur pur ne voit pas le module commandes, pas la peine de le sonner.
 const NOTIFY_ROLES = ['manager', 'manager_driver', 'staff'];
 
+const SOURCE_LABEL = { staff: 'Comptoir', online: 'En ligne', uber_eats: 'Uber Eats', deliveroo: 'Deliveroo' };
+
+function sourceStyle(t, source) {
+  if (source === 'uber_eats') return { backgroundColor: t.orangeBg, color: t.orangeText };
+  if (source === 'deliveroo') return { backgroundColor: t.greenBg, color: t.greenText };
+  if (source === 'online') return { backgroundColor: t.blueBg, color: t.blueText };
+  return { backgroundColor: t.tabBg, color: t.text2 };
+}
+
 export default function Layout() {
   const { user, token, logout } = useAuthStore();
   const { notifications, unreadCount, markAllRead, addNotification } = useNotificationStore();
   const { isDark, toggleTheme, t } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showPanel, setShowPanel] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     if (!token || !NOTIFY_ROLES.includes(user?.role)) return;
     const socket = io(import.meta.env.VITE_API_URL || '/', { auth: { token }, path: '/socket.io' });
 
     socket.on('order:new', (data) => {
-      addNotification({ title: 'Nouvelle commande', message: `${data.orderNumber} - ${data.customerName}` });
+      const notif = { title: 'Nouvelle commande', message: `${data.orderNumber} - ${data.customerName}`, source: data.source || 'staff' };
+      addNotification(notif);
+      const toastId = Date.now();
+      setToasts(ts => [...ts, { ...notif, id: toastId }].slice(-3));
+      setTimeout(() => setToasts(ts => ts.filter(x => x.id !== toastId)), 6000);
     });
 
     return () => socket.disconnect();
@@ -66,17 +81,52 @@ export default function Layout() {
                 {location.pathname === '/livraison' ? '← Gestion' : 'Tournée →'}
               </Link>
             )}
-            <button onClick={markAllRead} className="relative p-2 w-[34px] h-[34px] rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: t.accentBg, color: t.accent }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-stop text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                  {unreadCount}
-                </span>
+            <div className="relative">
+              <button
+                onClick={() => { setShowPanel(v => !v); markAllRead(); }}
+                className="relative p-2 w-[34px] h-[34px] rounded-full flex items-center justify-center transition-colors"
+                style={{ backgroundColor: t.accentBg, color: t.accent }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-stop text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showPanel && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPanel(false)} />
+                  <div
+                    className="absolute right-0 top-11 z-50 w-80 max-w-[90vw] max-h-96 overflow-y-auto rounded-xl"
+                    style={{ backgroundColor: t.cardBg, border: `1px solid ${t.border}`, boxShadow: shadows.card }}
+                  >
+                    <div className="px-4 py-3 sticky top-0" style={{ backgroundColor: t.cardBg, borderBottom: `1px solid ${t.border}` }}>
+                      <p className="text-sm font-semibold" style={{ color: t.text1 }}>Commandes récentes</p>
+                    </div>
+                    {notifications.length === 0 ? (
+                      <p className="text-sm text-center py-6" style={{ color: t.text3 }}>Aucune commande récente</p>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="font-semibold text-sm" style={{ color: t.text1 }}>{n.title}</p>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={sourceStyle(t, n.source)}>
+                              {SOURCE_LABEL[n.source] || n.source}
+                            </span>
+                          </div>
+                          <p className="text-xs" style={{ color: t.text2 }}>{n.message}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
               )}
-            </button>
+            </div>
             <Link to="/settings" className="flex items-center gap-2 no-underline">
               {user?.avatarUrl ? (
                 <img src={`${(import.meta.env.VITE_API_URL || '')}${user.avatarUrl}`} alt="" className="w-[34px] h-[34px] rounded-full object-cover" />
@@ -102,11 +152,16 @@ export default function Layout() {
         </div>
       </header>
 
-      {notifications.length > 0 && (
+      {toasts.length > 0 && (
         <div className="fixed top-16 right-2 left-2 sm:left-auto sm:right-4 z-50 space-y-2 sm:w-80">
-          {notifications.slice(0, 3).map((n) => (
+          {toasts.map((n) => (
             <div key={n.id} className="p-3 rounded-xl border-l-4" style={{ backgroundColor: t.cardBg, color: t.text1, border: `1px solid ${t.border}`, borderLeftColor: t.accent, boxShadow: shadows.card }}>
-              <p className="font-semibold text-sm">{n.title}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-sm">{n.title}</p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0" style={sourceStyle(t, n.source)}>
+                  {SOURCE_LABEL[n.source] || n.source}
+                </span>
+              </div>
               <p className="text-xs" style={{ color: t.text2 }}>{n.message}</p>
             </div>
           ))}
