@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { useNotificationStore } from '../stores/notificationStore';
+import { useNotificationStore, SOUND_OPTIONS } from '../stores/notificationStore';
 import { useTheme } from '../ThemeContext';
 import { api } from '../utils/api';
 import { shadows } from '../theme';
@@ -23,7 +23,7 @@ const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 export default function SettingsPage() {
   const { user, updateUser, logout } = useAuthStore();
   const { t, isDark, toggleTheme, applyBusinessColors } = useTheme();
-  const { soundEnabled, toggleSound } = useNotificationStore();
+  const { soundEnabled, toggleSound, soundChoice, setSoundChoice } = useNotificationStore();
   const navigate = useNavigate();
 
   const [profileForm, setProfileForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '' });
@@ -275,6 +275,22 @@ export default function SettingsPage() {
             />
           </button>
         </div>
+        {soundEnabled && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {SOUND_OPTIONS.map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setSoundChoice(opt.id)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                style={soundChoice === opt.id
+                  ? { backgroundColor: t.accent, color: '#fff' }
+                  : { backgroundColor: t.bg, color: t.text1, border: `1px solid ${t.border}` }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Branding */}
