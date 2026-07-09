@@ -60,3 +60,12 @@ h1, h2, h3, h4, h5, h6 {
 code, .mono {
   font-family: var(--font-mono);
 }
+
+/* De nombreux champs utilisent focus:outline-none sans remplacement -
+   indicateur de focus clavier visible restaure ici globalement plutot que
+   de retoucher chaque input individuellement. :focus-visible n'apparait
+   qu'au clavier (Tab), pas au clic souris. */
+input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--theme-accent, #5C6B3C);
+  outline-offset: 2px;
+}

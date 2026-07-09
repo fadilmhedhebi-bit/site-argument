@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 import BusinessLogo from '../components/BusinessLogo';
+import PageSpinner from '../components/PageSpinner';
 import CartSummary from '../components/CartSummary';
 import { useTheme } from '../ThemeContext';
 import useCart from '../hooks/useCart';
@@ -58,11 +59,7 @@ export default function ClientCommandePage() {
     finally { setSubmitting(false); }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center" style={{ backgroundColor: t.bg, minHeight: '100vh', color: t.text2 }}>
-      Chargement du menu...
-    </div>
-  );
+  if (loading) return <PageSpinner />;
 
   return (
     <div style={{ backgroundColor: t.bg, minHeight: '100vh' }}>

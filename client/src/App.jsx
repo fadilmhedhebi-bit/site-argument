@@ -2,9 +2,10 @@ import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useNotificationStore } from './stores/notificationStore';
-import { ThemeProvider, useTheme } from './ThemeContext';
+import { ThemeProvider } from './ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
+import PageSpinner from './components/PageSpinner';
 
 // Chaque page part dans son propre chunk JS, charge a la demande plutot que
 // tout regroupe dans un seul bundle initial (recharts/leaflet notamment ne
@@ -24,14 +25,6 @@ const PlatformAdminLoginPage = lazy(() => import('./pages/PlatformAdminLoginPage
 const PlatformAdminDashboardPage = lazy(() => import('./pages/PlatformAdminDashboardPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 
-function PageLoading() {
-  const { t } = useTheme();
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: t.bg }}>
-      <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: t.border, borderTopColor: t.accent }} />
-    </div>
-  );
-}
 
 function ProtectedRoute({ children, roles }) {
   const user = useAuthStore((s) => s.user);
@@ -55,7 +48,7 @@ export default function App() {
     <ThemeProvider>
     <BrowserRouter>
       <ErrorBoundary>
-      <Suspense fallback={<PageLoading />}>
+      <Suspense fallback={<PageSpinner />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
